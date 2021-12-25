@@ -404,7 +404,7 @@ function graphInit() {
 									[
 										(bb[2] + bb[0]) / 2.5,
 										(bb[1] + bb[3]) / 2,
-										'<div id="inputID"><p>Enter Value of $t_\\\\infty$</p><br>' +
+										'<div id="inputID"><p>Enter Value of $t$<sub>' + key.substring(1,2) + '</sub></p><br>' +
 											'<input type="float" id="xValue" required value=' +
 											thisTemp.X() +
 											'><br><br>' +
