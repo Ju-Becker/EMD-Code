@@ -33,5 +33,4 @@ const constants = {
 		return s;
 	},
 };
-//test
 export default constants;
