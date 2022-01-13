@@ -821,7 +821,7 @@ function initailAxes() {
 	const origPt = graph.board.create('point', [0, 0], { visible: false });
 	graph.upperAxis = 30;
 	graph.lowerAxis = graph.board.canvasHeight - 30;
-	/*graph.board.on('boundingbox', () => {
+	graph.board.on('boundingbox', () => {
 		console.time('Axis');
 		bb = graph.board.getBoundingBox();
 		const mycoordsY = new JXG.Coords(
@@ -875,7 +875,7 @@ function initailAxes() {
 		}
 		setTicks();
 		console.timeEnd('Axis');
-	});*/
+	});
 	graph.boardRestriction = true;
 	graph.yLogFunc = function yLogFunc() {
 		console.time('yLog');
