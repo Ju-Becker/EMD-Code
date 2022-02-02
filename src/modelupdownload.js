@@ -845,7 +845,7 @@ function downloadmodeljson(fittingcompartment){
 		text = text.substring(0,text.length - 1);
 	}
 	text += '],\n';
-	text += '          "state-names": [';
+	text += '          "state-names": {';
 	Object.keys(graph.states).forEach((key) => {
 		text += '"';
 		text += key;
@@ -859,7 +859,7 @@ function downloadmodeljson(fittingcompartment){
 	if(text.charAt(text.length-1) === ','){
 		text = text.substring(0,text.length - 1);
 	}
-	text += '],\n';
+	text += '},\n';
 	text += '          "IV": [';
 	Object.keys(graph.states).forEach((key) => {
 		text += graph.states[key].getValue();
