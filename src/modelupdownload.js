@@ -27,7 +27,7 @@ followed by a newline and the interverntion information
 followed by a newline and the interverntion value for each rate*/
 
 /* Epidemic-Model-Data
- * states: stateID,stateValue,stateName;...,...,...;...:
+ * states: stateID(statecoordinates),stateValue,stateName;...,...,...;...:
  * transitions are splitted in the transition name, the stateID of the 
  * source state and the stateID of the target state:
  * syntax of the transition name: ratename-...-(stateID)-...-+-...,
@@ -39,7 +39,7 @@ followed by a newline and the interverntion value for each rate*/
 //Example for the classic SIR-Model:
 /*
 Epidemic-Model-Data
-s0,1000,119878;s1,0,119868;s2,0,119877:
+s0(40,40),1000,119878;s1(140,40),0,119868;s2(240,40),0,119877:
 120573-(s1),s0,s1;120574,s1,s2:
 :
 :
@@ -51,7 +51,7 @@ t0-0:
 // called by index.js 
 // when a file is uploaded inituploadmodel is called
 function inituploadmodel() {
-	if(shapes.generateFreeID('s') !== 's1'){
+	if(shapes.generateFreeID('s') !== 's1'){ // ckeck if there is already a model running
 		alert('There is an acitve model running! \nPlease refresh the website before the upload.');
 		document.getElementById('uploadmodel').style.backgroundColor = 'red';
 		return;
@@ -69,9 +69,10 @@ function inituploadmodel() {
 // we read the uploaded data from the input
 function generate(input){
 	var i = 0; // main iterator
-	var xdist = 100; // distance of the states
-	var name;
-	var temp;
+	var coordx; // coordinates of the state
+	var coordy;
+	var name; // name of the state
+	var temp; // used to read the name of the state
 	var id; 
 	var value;
 	var testid = 's1';
@@ -82,21 +83,36 @@ function generate(input){
 	// read the state data
 	while(input[i]!==':'){
 		name =[];
+		coordx =0;
+		coordy =0;
 		temp ='';
 		id = '';
 		value = '';
-		while(input[i]!== ','){
+		while(input[i]!== '('){ // read the id of the state
 			id += input[i];
 			i++;
 		}
 		i++;
-		while(input[i]!== ','){
+		while(input[i]!== ','){ // read the xcoord of the state
+			coordx += input[i];
+			i++;
+		}
+		coordx = parseInt(coordx);
+		i++;
+		while(input[i]!== ')'){ // read the ycoord of the state
+			coordy += input[i];
+			i++;
+		}
+		coordy = parseInt(coordy);
+		i++;
+		i++;
+		while(input[i]!== ','){ // read the value of the state
 			value += input[i];
 			i++;
 		}
 		value = parseFloat(value);
 		i++;
-		while(input[i]!==';'&&input[i]!==':'){
+		while(input[i]!==';'&&input[i]!==':'){ // read the name of the state
 			temp += input[i];
 			i++;
 			if(input[i] ===','){
@@ -106,20 +122,22 @@ function generate(input){
 			}
 		}
 		name.push(parseInt(temp))
-		if(first){
-			var j = 0;
-			first = false;
-			const defaultstate = shapes.getShape('s0');
-			fsmCSS.systemStateActivate('sr',defaultstate);
-			fsmCSS.activeShape.move(100,150);
-			stAct.nameRemoveToken();
+		// speacial treatment for the first state: since per default there is always the state with id s0
+		// so we can just modify this state for the first uploaded state
+		if(first){ 
+			var j = 0; // iterator for the name
+			first = false; // job done for the first state
+			const defaultstate = shapes.getShape('s0'); 
+			fsmCSS.systemStateActivate('sr',defaultstate); // activate the state with id s0 
+			fsmCSS.activeShape.move(coordx,coordy); // move to the uploaded coordinates
+			stAct.nameRemoveToken(); // reset the name
 			while(j < name.length){
 				stAct.stateName(name[j]);
 				j++;
 			}
-			fsmCSS.activeShape.deactivate();
+			fsmCSS.activeShape.deactivate(); // deactivate the state 's0'
 			fsmCSS.systemStateActivate('i');
-			shapes.draw();
+			shapes.draw();// draw the changes
 			fsmCSS.callback(shapes.shMap);
 			// state value
 			graph.data.states = {};
@@ -133,7 +151,7 @@ function generate(input){
 		while(id!==testid){
 			testid = shapes.generateFreeID('s');
 		}
-		const st = new State(id, xdist, 150);
+		const st = new State(id, coordx, coordy);
 		shapes.addShape(id, st);
 		var j = 0;
 		while(j < name.length){
@@ -147,7 +165,6 @@ function generate(input){
 		graph.data.states[id].name = st.name;
 		graph.data.states[id].value = value;
 		}
-		xdist += 150;
 		if(input[i] !== ':'){
 			i++;
 		}
@@ -502,7 +519,12 @@ function downloadmodel() {
 	for([shID, sh] of shapes.shMap) {
 		shType = shID.substring(0,1);
 		if(shType === 's'){
-			text += shID;
+			text += shID; // save the stateID
+			text += '('
+			text += sh.x;
+			text += ','
+			text += sh.y;
+			text += ')'
 			text += ',';
 			// it is possible that the user has not yet entered 'The Simulation'
 			// therefore, if graph data was not yet initialized, we simply pick 0 as default
@@ -512,7 +534,7 @@ function downloadmodel() {
 				text += '0';
 			}
 			text += ',';
-			text += sh.nameArr;
+			text += sh.nameArr; // save the state name
 			text += ';';
 		}
 	}
@@ -700,6 +722,227 @@ function downloaddatacsv(){
  }
  downloaddata(text,filename,type);
 }
+//called by fitting request, when user has selected compartment to fit
+function downloadmodeljson(fittingcompartment){
+	const data = ode();
+	var filename = 'EMD-model.json';
+	var type = /text.*/;
+	var text = '{"Model":\n';
+	text += '         {"Equations": {';
+	var shID, sh, shType, shIDstate, shstate;
+	var statescount;
+	for([shIDstate, shstate] of shapes.shMap){
+		shType = shIDstate.substring(0,1);
+		//first transition then special arrows
+		if(shType === 's'){
+			text += '"';
+			text += shIDstate;
+			text += '": "';
+		for([shID, sh] of shapes.shMap){
+			shType = shID.substring(0,1);
+			//first transition then special arrows
+			if(shType === 't' && sh.source.id === shIDstate && sh.type === undefined){
+				statescount =0;
+				text += '-';
+				text += shIDstate;
+				text += '*';
+				for(let m = 0; m < sh.nameArr.length; m++){
+					switch (sh.nameArr[m][0]) {
+						case 'r':
+							text += sh.nameArr[m][1];
+							text += '*';
+							break;
+						case 's':
+							text += sh.nameArr[m][1].id;
+							text += '*';
+							if(sh.nameArr[m][1].id != 'n'){
+								statescount++;
+							}
+							break;
+						case 'o':
+							for(; statescount > 0; statescount--){
+								text += '/n';
+							}
+							text += '-';
+							text += shIDstate;
+							text += '*';
+							break;
+						default:
+							break;					
+					}
+				}
+				if(text.charAt(text.length-1) === '*'){
+					text = text.substring(0,text.length - 1);
+				}
+				for(; statescount > 0; statescount--){
+					text += '/n';
+				}
+			}
+		}
+		for([shID, sh] of shapes.shMap){
+			shType = shID.substring(0,1);
+			//first transition then special arrows
+			if(shType === 't' && sh.target.id === shIDstate && sh.type === undefined){
+				statescount =0;
+				text += '+';
+				text += sh.source.id;
+				text += '*';
+				for(let m = 0; m < sh.nameArr.length; m++){
+					switch (sh.nameArr[m][0]) {
+						case 'r':
+							text += sh.nameArr[m][1];
+							text += '*';
+							break;
+						case 's':
+							text += sh.nameArr[m][1].id;
+							text += '*';
+							if(sh.nameArr[m][1].id != 'n'){
+								statescount++;
+							}
+							break;
+						case 'o':
+							for(; statescount > 0; statescount--){
+								text += '/n';
+							}
+							text += '+';
+							text += sh.source.id;
+							text += '*';
+							break;
+						default:
+							break;					
+					}
+				}
+				if(text.charAt(text.length-1) === '*'){
+					text = text.substring(0,text.length - 1);
+				}
+				for(; statescount > 0; statescount--){
+					text += '/n';
+				}
+			}
+		}
+		text += '", ';
+		}
+	}
+	text = text.substring(0,text.length - 2);
+	text += '},\n          "Parameters": [';
+	Object.keys(graph.rates).forEach((key) => {
+		text += '"';
+		text += key.codePointAt(0);
+		text += '",';
+	});
+	if(text.charAt(text.length-1) === ','){
+		text = text.substring(0,text.length - 1);
+	}
+	text += '],\n';
+	text += '          "state_ids": [';
+	Object.keys(graph.states).forEach((key) => {
+		text += '"';
+		text += key;
+		text += '"';
+		text += ',';
+	});
+	if(text.charAt(text.length-1) === ','){
+		text = text.substring(0,text.length - 1);
+	}
+	text += '],\n';
+	text += '          "state-names": [';
+	Object.keys(graph.states).forEach((key) => {
+		text += '"';
+		text += key;
+		text += '"';
+		text += ':';
+		text += '"';
+		text += graph.states[key].name;
+		text += '"';
+		text += ',';
+	});
+	if(text.charAt(text.length-1) === ','){
+		text = text.substring(0,text.length - 1);
+	}
+	text += '],\n';
+	text += '          "IV": [';
+	Object.keys(graph.states).forEach((key) => {
+		text += graph.states[key].getValue();
+		text += ',';
+	});
+	if(text.charAt(text.length-1) === ','){
+		text = text.substring(0,text.length - 1);
+	}
+	text += '],\n          "Compartments_to_Fit": [';
+	text += fittingcompartment;
+	text += '],\n          "N": ';
+	var population = 0;
+	Object.keys(graph.states).forEach((key) => {
+		population += graph.states[key].getValue();
+	});
+	text += population;
+	text += '}\n}';
+	downloaddata(text,filename,type);
+}
 
+function fittingrequest(){
+	let labels = '<br>';
+	let fitting = '';
+	/* Hide default HTML checkbox */
+	Object.keys(graph.states).forEach((key) => {
+		// Html of sliders
+		labels += '<label class="switch">';
+		labels +=
+			'<input type="checkbox" id="fittingcheck' +
+			key +
+			'" name="fittingcheck' +
+			key +
+			'">' +
+			' ' +
+			key; //  Name of the Curve
+		labels +=
+			'<span class="slider' +
+			key +
+			' round"></span></label><span> ' ;
+			labels += graph.states[key].name ; 
+			labels += '(t)' + //  Name of the Curve
+			'  &nbsp&nbsp</span><br>';
+	});
 
-export {inituploadmodel, downloadmodel, downloaddatacsv};
+	labels += '<button id="fittingchoicevalidate" class="downloadupload" style="margin-right: 6px; width: 97px">Accept</button>';
+	labels += '<button id="fittingchoicecancel" class="downloadupload" style="width: 97px">Cancel</button>';
+	$('#fittingchoice').html(labels);
+	document.getElementById('fittingchoicevalidate').addEventListener("click", function(){ 
+		Object.keys(graph.states).forEach((key) => {
+			let id = 'fittingcheck';
+			id += key;
+			if(document.getElementById(id).checked){
+				fitting += '"';
+				fitting += key;
+				fitting += '",';
+			}
+		});
+		if(fitting.charAt(fitting.length-1) === ','){
+			fitting = fitting.substring(0,fitting.length - 1);
+		}
+		$('#fittingchoice').html('');
+		downloadmodeljson(fitting);
+	});
+	document.getElementById('fittingchoicecancel').addEventListener("click", function(){ 
+		$('#fittingchoice').html('');
+	});
+}
+
+//---------------------------------------
+function fittingprogram(){
+	window.open('https://github.com/Kilian672/EMD-Code/blob/main/App.exe', '_blank').focus();
+	//download("https://raw2.github.com/Kilian672/EMD-Code/main/package.json","package.json");
+}
+function download(url, filename) {
+  fetch(url)
+    .then(response => response.blob())
+    .then(blob => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+  })
+  .catch(console.error);
+}
+
+export {inituploadmodel, downloadmodel, downloaddatacsv, fittingrequest, fittingprogram};

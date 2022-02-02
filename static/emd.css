@@ -534,6 +534,7 @@ input:checked + .sliderMain:before {
 #downloaduploadID{
 	grid-column: 1/4;
 	grid-row: 3/8;
+	float: left;
 	display: block;
 	padding-top: 12px;
 	padding-left: 12px;
@@ -555,8 +556,7 @@ input:checked + .sliderMain:before {
 	display: block;
 	width: 500px;
 }
-
-#downloadmodel{
+.downloadupload {
 	border: 2px solid rgb(0, 0, 100);
 	width: 200px;
   padding: .2em .4em;
@@ -565,23 +565,8 @@ input:checked + .sliderMain:before {
   background-color: rgb(0, 0, 100);
   transition: 1s;
 }
-
-#downloadmodel:hover {
-  background-color: #81ecec;
-  border: 2px solid #00cec9;
-}
-#downloaddatacsv{
-	border: 2px solid rgb(0, 0, 100);
-	width: 200px;
-  padding: .2em .4em;
-  border-radius: .2em;
-	color: white;
-  background-color: rgb(0, 0, 100);
-  transition: 1s;
-}
-
-#downloaddatacsv:hover {
-  background-color: #81ecec;
+.downloadupload:hover{
+	background-color: #81ecec;
   border: 2px solid #00cec9;
 }
 

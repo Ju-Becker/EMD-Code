@@ -3,7 +3,7 @@ import { init as initi } from './init';
 import events from './events';
 import plotCurves from './plot';
 import fsm from './fsm/FSM'; // Entry point for everything related to the tab "The Model"
-import {inituploadmodel, downloadmodel, downloaddatacsv} from './modelupdownload'; 
+import {inituploadmodel, downloadmodel, downloaddatacsv, fittingrequest, fittingprogram} from './modelupdownload'; 
 
 function initial() {
 	// initializing all components
@@ -75,6 +75,14 @@ function initClickFunction() {
 	//user download data as csv
 	$('#downloaddatacsv').click(() => {
 		downloaddatacsv();
+	});
+	//user download model structur as json
+	$('#downloadmodeljson').click(() => {
+		fittingrequest();
+	});
+	//user fittingprogram download
+	$('#downloadfittingprogram').click(() => {
+		fittingprogram();
 	});
 	$('#Rates').click(() => {
 		$('#ratesID').show();
