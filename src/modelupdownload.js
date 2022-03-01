@@ -945,4 +945,4 @@ function download(url, filename) {
   .catch(console.error);
 }
 
-export {inituploadmodel, downloadmodel, downloaddatacsv, fittingrequest, fittingprogram};
+export {inituploadmodel, downloadmodel, downloaddatacsv, fittingrequest, fittingprogram, generate};
