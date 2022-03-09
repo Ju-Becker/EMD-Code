@@ -5,6 +5,7 @@ const models = { // model structure of the defaultmodels
 	SIRS: '',
 	SIRD: '',
 	SIRV: '',
+	MSEIR: '',
 }
 const modelsvitaldynamics = { // model structure of the defaultmodels with vitaldynamics
 	SIRvitaldynamics: '', // for every model there is necessarily a vitaldynamics version 
@@ -13,6 +14,7 @@ const modelsvitaldynamics = { // model structure of the defaultmodels with vital
 	SIRSvitaldynamics: '',
 	SIRDvitaldynamics: '',
 	SIRVvitaldynamics: '',
+	MSEIRvitaldynamics: '',
 }
 
 models.SIR = 'Epidemic-Model-Data\n';
@@ -63,6 +65,14 @@ models.SIRV += ':\n';
 models.SIRV += 't0-0:\n';
 models.SIRV += '120573,t0,0.3;120574,t0,0.1;120575,t0,0.01:\n';
 
+models.MSEIR = 'Epidemic-Model-Data\n';
+models.MSEIR += 's0(100,100),100,119872;s1(300,100),900,119878;s2(500,100),0,119864;s3(700,100),1,119868;s4(900,100),0,119877:\n';
+models.MSEIR += '120575,s0,s1;120573-(s3),s1,s2;120572,s2,s3;120574,s3,s4:\n';
+models.MSEIR += ':\n';
+models.MSEIR += ':\n';
+models.MSEIR += 't0-0:\n';
+models.MSEIR += '120575,t0,0.01;120573,t0,0.3;120572,t0,0.1;120574,t0,0.1:\n';
+
 
 modelsvitaldynamics.SIRvitaldynamics = 'Epidemic-Model-Data\n';
 modelsvitaldynamics.SIRvitaldynamics += 's0(100,100),1000,119878;s1(300,100),10,119868;s2(500,100),0,119877:\n';
@@ -111,6 +121,14 @@ modelsvitaldynamics.SIRVvitaldynamics += '120583-(n),s0:\n';
 modelsvitaldynamics.SIRVvitaldynamics += '120584-(s0),s0;120584-(s1),s1;120584-(s2),s2;120584-(s3),s3:\n';
 modelsvitaldynamics.SIRVvitaldynamics += 't0-0:\n';
 modelsvitaldynamics.SIRVvitaldynamics += '120573,t0,0.3;120574,t0,0.1;120575,t0,0.01;120583,t0,0.01;120584,t0,0.01:\n';
+
+modelsvitaldynamics.MSEIRvitaldynamics = 'Epidemic-Model-Data\n';
+modelsvitaldynamics.MSEIRvitaldynamics += 's0(100,100),100,119872;s1(300,100),900,119878;s2(500,100),0,119864;s3(700,100),1,119868;s4(900,100),0,119877:\n';
+modelsvitaldynamics.MSEIRvitaldynamics += '120575,s0,s1;120573-(s3),s1,s2;120572,s2,s3;120574,s3,s4:\n';
+modelsvitaldynamics.MSEIRvitaldynamics += '120583-(s0)-+-120583-(s2)-+-120583-(s3)-+-120583-(s4),s0;120583-(s1),s1:\n';
+modelsvitaldynamics.MSEIRvitaldynamics += '120584-(s0),s0;120584-(s1),s1;120584-(s2),s2;120584-(s3),s3;120584-(s4),s4:\n';
+modelsvitaldynamics.MSEIRvitaldynamics += 't0-0:\n';
+modelsvitaldynamics.MSEIRvitaldynamics += '120575,t0,0.01;120573,t0,0.3;120572,t0,0.1;120574,t0,0.1;120583,t0,0.001;120584,t0,0.001:\n';
 
 
 export {models, modelsvitaldynamics};

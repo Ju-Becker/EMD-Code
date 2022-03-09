@@ -881,7 +881,8 @@ function downloadmodeljson(fittingcompartment){
 }
 
 function fittingrequest(){
-	let labels = '<br>';
+	let labels = '<div>Select states to fit:<\div>';
+	labels += '<br>';
 	let fitting = '';
 	/* Hide default HTML checkbox */
 	Object.keys(graph.states).forEach((key) => {
