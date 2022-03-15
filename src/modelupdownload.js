@@ -16,6 +16,7 @@ import shapes from './fsm/Graph/Shapes'; // used to create the download data
 import fsmCSS from './fsm/Graph/Graph'; // used to create the download data
 import { graph } from './graph'; // download and upload the states, rates, intervention data
 import ode from './ode'; // used to create the dataset 
+import symbols from './fsm/Constants/Symbols';
 
 /* syntax of the download-file:
 the file contains a header: Epidemic-Model-Data
@@ -707,7 +708,17 @@ function downloaddatacsv(){
  for([shID, sh] of shapes.shMap){
 		const shType = shID.substring(0,1);
 		if(shType === 's'){
-			text += shID;
+			for (let i = 0; i < sh.name.length; i++) {
+				let namepoint = sh.name.codePointAt(i)
+				Object.keys(symbols.L.C).forEach((key) => {
+					if(symbols.L.C[key] === namepoint){
+						text += key;
+					}
+					if(symbols.L.S[key] === namepoint){
+						text += key.toLowerCase();
+					}
+				})
+			}
 			text += ',';
 		}
 	}
@@ -723,25 +734,32 @@ function downloaddatacsv(){
  downloaddata(text,filename,type);
 }
 //called by fitting request, when user has selected compartment to fit
-function downloadmodeljson(fittingcompartment){
+function downloadmodeljson(fittingcompartment, scompartment){
 	const data = ode();
 	var filename = 'EMD-model.json';
 	var type = /text.*/;
 	var text = '{"Model":\n';
 	text += '         {"Equations": {';
+	// first the equation for n:
+	text += '"n": "';
+	Object.keys(graph.states).forEach((key) => {
+		text += key;
+		text += '+';
+	})
+	text = text.substring(0,text.length - 1);
+	text += '", ';
 	var shID, sh, shType, shIDstate, shstate;
 	var statescount;
 	for([shIDstate, shstate] of shapes.shMap){
 		shType = shIDstate.substring(0,1);
-		//first transition then special arrows
 		if(shType === 's'){
 			text += '"';
 			text += shIDstate;
 			text += '": "';
-		for([shID, sh] of shapes.shMap){
+		for([shID, sh] of shapes.shMap){ 
 			shType = shID.substring(0,1);
 			//first transition then special arrows
-			if(shType === 't' && sh.source.id === shIDstate && sh.type === undefined){
+			if(shType === 't' && sh.source.id === shIDstate && sh.type === undefined){ // arrows with source this state
 				statescount =0;
 				text += '-';
 				text += shIDstate;
@@ -778,11 +796,7 @@ function downloadmodeljson(fittingcompartment){
 					text += '/n';
 				}
 			}
-		}
-		for([shID, sh] of shapes.shMap){
-			shType = shID.substring(0,1);
-			//first transition then special arrows
-			if(shType === 't' && sh.target.id === shIDstate && sh.type === undefined){
+			if(shType === 't' && sh.target.id === shIDstate && sh.type === undefined){ // arrows with target this state
 				statescount =0;
 				text += '+';
 				text += sh.source.id;
@@ -819,10 +833,82 @@ function downloadmodeljson(fittingcompartment){
 					text += '/n';
 				}
 			}
+			// Now the specialArrows
+			if(shType === 't' && sh.source.id === shIDstate && sh.type === 'out'){ // specialArrows with source this state
+				statescount =-1;
+				text += '-';
+				for(let m = 0; m < sh.nameArr.length; m++){
+					switch (sh.nameArr[m][0]) {
+						case 'r':
+							text += sh.nameArr[m][1];
+							text += '*';
+							break;
+						case 's':
+							text += sh.nameArr[m][1].id;
+							text += '*';
+							if(sh.nameArr[m][1].id != 'n'){
+								statescount++;
+							}
+							break;
+						case 'o':
+							for(; statescount > 0; statescount--){
+								text += '/n';
+							}
+							text += '-';
+							text += shIDstate;
+							text += '*';
+							break;
+						default:
+							break;					
+					}
+				}
+				if(text.charAt(text.length-1) === '*'){
+					text = text.substring(0,text.length - 1);
+				}
+				for(; statescount > 0; statescount--){
+					text += '/n';
+				}
+			}
+			if(shType === 't' && sh.target.id === shIDstate && sh.type === 'in'){ // specialArrows with target this state
+				statescount =-1;
+				text += '+';
+				for(let m = 0; m < sh.nameArr.length; m++){
+					switch (sh.nameArr[m][0]) {
+						case 'r':
+							text += sh.nameArr[m][1];
+							text += '*';
+							break;
+						case 's':
+							text += sh.nameArr[m][1].id;
+							text += '*';
+							if(sh.nameArr[m][1].id != 'n'){
+								statescount++;
+							}
+							break;
+						case 'o':
+							for(; statescount > 0; statescount--){
+								text += '/n';
+							}
+							text += '+';
+							text += sh.source.id;
+							text += '*';
+							break;
+						default:
+							break;					
+					}
+				}
+				if(text.charAt(text.length-1) === '*'){
+					text = text.substring(0,text.length - 1);
+				}
+				for(; statescount > 0; statescount--){
+					text += '/n';
+				}
+			}
 		}
 		text += '", ';
 		}
 	}
+	// Now the Parameters
 	text = text.substring(0,text.length - 2);
 	text += '},\n          "Parameters": [';
 	Object.keys(graph.rates).forEach((key) => {
@@ -852,7 +938,32 @@ function downloadmodeljson(fittingcompartment){
 		text += '"';
 		text += ':';
 		text += '"';
-		text += graph.states[key].name;
+		for (let i = 0; i < graph.states[key].name.length; i++) {
+			let namepoint = graph.states[key].name.codePointAt(i)
+			Object.keys(symbols.L.C).forEach((key) => {
+				if(symbols.L.C[key] === namepoint){
+					text += key;
+				}
+				if(symbols.L.S[key] === namepoint){
+					text += key.toLowerCase();
+				}
+			})
+		}
+		text += '"';
+		text += ',';
+	});
+	if(text.charAt(text.length-1) === ','){
+		text = text.substring(0,text.length - 1);
+	}
+	text += '},\n';
+	text += '          "rates-names": {';
+	Object.keys(graph.rates).forEach((key) => {
+		text += '"';
+		text += key.codePointAt(0);
+		text += '"';
+		text += ':';
+		text += '"';
+		text += symbols.greek.S[key.codePointAt(0)];		
 		text += '"';
 		text += ',';
 	});
@@ -870,7 +981,9 @@ function downloadmodeljson(fittingcompartment){
 	}
 	text += '],\n          "Compartments_to_Fit": [';
 	text += fittingcompartment;
-	text += '],\n          "N": ';
+	text += '],\n          "Susceptibles": ';
+	text += scompartment;
+	text += ',\n          "n": ';
 	var population = 0;
 	Object.keys(graph.states).forEach((key) => {
 		population += graph.states[key].getValue();
@@ -881,9 +994,26 @@ function downloadmodeljson(fittingcompartment){
 }
 
 function fittingrequest(){
-	let labels = '<div>Select states to fit:<\div>';
-	labels += '<br>';
+	let labels = '<div>Select states to fit:</div>';
 	let fitting = '';
+	let scompartment = '';
+	// slider for the population
+	labels += '<label class="switch">';
+	labels +=
+		'<input type="checkbox" id="fittingcheck' +
+		'n' +
+		'" name="fittingcheck' +
+		'n' +
+		'">' +
+		' ' +
+		'N'; //  Name of the Curve
+	labels +=
+		'<span class="slider' +
+		'n' +
+		' round"></span></label><span style="font-family:\'Arial\';"> ' ;
+		labels += 'N' ; 
+		labels += '(t)' + //  Name of the Curve
+		'  &nbsp&nbsp</span><br>';
 	/* Hide default HTML checkbox */
 	Object.keys(graph.states).forEach((key) => {
 		// Html of sliders
@@ -899,7 +1029,31 @@ function fittingrequest(){
 		labels +=
 			'<span class="slider' +
 			key +
-			' round"></span></label><span> ' ;
+			' round"></span></label><span style="font-family:\'Arial\';"> ' ;
+			labels += graph.states[key].name ; 
+			labels += '(t)' + //  Name of the Curve
+			'  &nbsp&nbsp</span><br>';
+	});
+	// choose the susceptibel compartment:
+	labels += '<div>Select your susceptible compartment:</div>'; 
+	let first = true; // the first state is per default checked
+	Object.keys(graph.states).forEach((key) => {
+		// Html of sliders
+		labels += '<label class="switch">';
+		labels +=
+			'<input type="checkbox" id="scompartment' +
+			key +
+			'" name="scompartment' +
+			key + '"';
+		if(first){labels += ' checked'; first = false;}
+		labels +=
+			'>' +
+			' ' +
+			key; //  Name of the Curve
+		labels +=
+			'<span class="slider' +
+			key +
+			' round"></span></label><span style="font-family:\'Arial\';"> ' ;
 			labels += graph.states[key].name ; 
 			labels += '(t)' + //  Name of the Curve
 			'  &nbsp&nbsp</span><br>';
@@ -908,7 +1062,26 @@ function fittingrequest(){
 	labels += '<button id="fittingchoicevalidate" class="downloadupload" style="margin-right: 6px; width: 97px">Accept</button>';
 	labels += '<button id="fittingchoicecancel" class="downloadupload" style="width: 97px">Cancel</button>';
 	$('#fittingchoice').html(labels);
+	// add event listeners so that only one susceptible compartment could be checked at once:
+	Object.keys(graph.states).forEach((key) => {
+		let id = 'scompartment';
+		id += key;
+		document.getElementById(id).addEventListener("click", function(){
+			if(!document.getElementById(id).checked){document.getElementById(id).checked = true;} // dont let user uncheck
+			Object.keys(graph.states).forEach((testkey) => { // everytime one state has to be checked
+				let testid = 'scompartment';
+				testid += testkey;
+				if(testkey !== key) document.getElementById(testid).checked = false;
+			})
+		})
+	});
+
 	document.getElementById('fittingchoicevalidate').addEventListener("click", function(){ 
+		if(document.getElementById('fittingcheckn').checked){
+			fitting += '"';
+			fitting += 'n';
+			fitting += '",';
+		}
 		Object.keys(graph.states).forEach((key) => {
 			let id = 'fittingcheck';
 			id += key;
@@ -921,8 +1094,20 @@ function fittingrequest(){
 		if(fitting.charAt(fitting.length-1) === ','){
 			fitting = fitting.substring(0,fitting.length - 1);
 		}
+		Object.keys(graph.states).forEach((key) => {
+			let id = 'scompartment';
+			id += key;
+			if(document.getElementById(id).checked){
+				scompartment += '"';
+				scompartment += key;
+				scompartment += '",';
+			}
+		});
+		if(scompartment.charAt(scompartment.length-1) === ','){
+			scompartment = scompartment.substring(0,scompartment.length - 1);
+		}
 		$('#fittingchoice').html('');
-		downloadmodeljson(fitting);
+		downloadmodeljson(fitting,scompartment);
 	});
 	document.getElementById('fittingchoicecancel').addEventListener("click", function(){ 
 		$('#fittingchoice').html('');

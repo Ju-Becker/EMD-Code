@@ -2,6 +2,7 @@ const symbols = {
 	L: { S: null, C: null },
 	G: { S: null, C: null },
 	S: { S: null, C: null },
+	greek: { S: null, C: null },
 };
 symbols.L.S = {
 	A: 119886,
@@ -183,5 +184,32 @@ symbols.S.C = {
 	8: 8328,
 	9: 8329,
 };
+symbols.greek.S = {
+	120572: "alpha",
+	120573: "beta",
+	120585: "xi",
+	120575: "delta",
+	120576: "epsilon",
+	120593: "phi",
+	120574: "gamma",
+	120578: "eta",
+	120580: "iota",
+	120589: "zeta",
+	120581: "kappa",
+	120582: "lambda",
+	120583: "mu",
+	120584: "nu",
+	120586: "o",
+	120587: "pi",
+	120579: "theta",
+	120588: "rho",
+	120590: "sigma",
+	120591: "tau",
+	120592: "upsilon",
+	120596: "omega",
+	120594: "chi",
+	120595: "psi",
+	120577: "zeta",
+}
 
 export default symbols;
