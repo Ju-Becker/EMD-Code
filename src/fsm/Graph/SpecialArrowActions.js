@@ -34,9 +34,9 @@ spaAct.returnstates = (state) => {
 };
 
 //creates a new SpecialArrow, triggered by button click
-//we generate to ids, one for the transition which is the SpecialArrow and one for the state dummy
-//the state dummy is than placed depended on the SpecialArrow type and the number of istances we have created so far
-//after that user has to enter a name and then all stakeholders are informed 
+//we generate two ids, one for the transition which is the SpecialArrow and one for the state dummy
+//the state dummy is than placed depended on the SpecialArrow type and the number of instances we have created so far
+//after that the user has to enter a name and then all stakeholders are informed 
 spaAct.specialArrowCreate = (type) =>{
 	const idstate = shapes.generateFreeID('s');
 	const id = shapes.generateFreeID('t');
