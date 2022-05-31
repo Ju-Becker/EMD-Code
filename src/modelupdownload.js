@@ -17,6 +17,8 @@ import fsmCSS from './fsm/Graph/Graph'; // used to create the download data
 import { graph } from './graph'; // download and upload the states, rates, intervention data
 import ode from './ode'; // used to create the dataset 
 import symbols from './fsm/Constants/Symbols';
+import SpecialState from "./fsm/Graph/SpecialStates";
+import Transition from "./fsm/Graph/Transition"
 
 /* syntax of the download-file:
 the file contains a header: Epidemic-Model-Data
@@ -78,6 +80,8 @@ function generate(input){
 	var value;
 	var testid = 's1';
 	var first = true; // special treatment for the first input state
+	var cstate = ''; // save information about the specialstates
+	var ctransition = ''; // save information about the specialtransitions
 	const verify = input.slice(0,19); // make sure that we got a suitable file
 	if(verify === 'Epidemic-Model-Data'){
 	i=20;
@@ -89,7 +93,23 @@ function generate(input){
 		temp ='';
 		id = '';
 		value = '';
+		cstate = '';
 		while(input[i]!== '('){ // read the id of the state
+			switch (input[i]) {
+				case 'm':
+					i = i + 10;
+					cstate = 'm';
+					break;
+				case 'l':
+					i = i + 10;
+					cstate = 'l';
+					break;
+				case 'r':
+					i = i+11;
+					cstate = 'r';
+				default:
+					break;
+			}
 			id += input[i];
 			i++;
 		}
@@ -148,23 +168,46 @@ function generate(input){
 			graph.data.interventions = {};
 			graph.data.interventions.t0 = 0;
 			graph.data.rates = {};
+			// init the capacity states value
+			graph.data.capacitystates = {}
 		}else{
 		while(id!==testid){
 			testid = shapes.generateFreeID('s');
 		}
-		const st = new State(id, coordx, coordy);
+		var st;
+		if(cstate === 'm'){
+			st = new SpecialState(id, coordx,coordy, 'special', 100)
+		}else{
+			st = new State(id, coordx, coordy);
+		}
 		shapes.addShape(id, st);
 		var j = 0;
 		while(j < name.length){
 		st.nameAddChr(name[j]);
 		j++;
 		}	
+		switch (cstate) { // specialstate treatment
+			case 'l':
+				st.capacitystate = 'left';
+				st.lineWidth = 2;
+				break;
+			case 'r':
+				st.capacitystate = 'right';
+				st.lineWidth = 0.5;
+			default:
+				break;
+		}
 		shapes.draw();
 		fsmCSS.callback(shapes.shMap);
 		// state value
 		graph.data.states[id] = {};
 		graph.data.states[id].name = st.name;
 		graph.data.states[id].value = value;
+		if(cstate === 'm'){//adding max capacity to the main state
+			graph.data.capacitystates[id] = {};
+			graph.data.capacitystates[id].name = st.name;
+			graph.data.capacitystates[id].value = value;
+		}
 		}
 		if(input[i] !== ':'){
 			i++;
@@ -177,6 +220,15 @@ function generate(input){
 	name=[];
 	temp = '';
 	while(input[i]!==';' && input[i] !== ':'){
+		ctransition = '';
+		if(input[i] === 'l'){
+			i += 15;
+			ctransition = 'left';
+		}
+		if(input[i] === 'r'){
+			i += 16;
+			ctransition = 'right';
+		}
 		source=''; 
 		target='';
 		name=[];
@@ -220,8 +272,22 @@ function generate(input){
 		}
 		target += temp;
 		target = shapes.getShape(target);
-
-		var transition = trAct.transitionCreate(source,target); 
+		var transition;
+		if(ctransition === 'left'){
+			const idtransitionleft = shapes.generateFreeID('t');
+			transition = new Transition(idtransitionleft, source, target);
+			transition.capacitystate = 'left'; // add attribut to preserve special treatment in the odes
+			transition.lineWidth = 2;
+			shapes.addShape(idtransitionleft, transition);
+		}else if(ctransition === 'right'){
+			const idtransitionright = shapes.generateFreeID('t');
+			transition = new Transition(idtransitionright, source, target);
+			transition.capacitystate = 'right'; // add attribut to preserve special treatment in the odes
+			transition.lineWidth = 0.5;
+			shapes.addShape(idtransitionright, transition);
+		}else{
+			transition = trAct.transitionCreate(source,target); 
+		}
 		fsmCSS.systemStateActivate('tr', transition);
 		// create the name of the transition
 		var j =0;
@@ -476,6 +542,7 @@ function generate(input){
 	$('#plotID').hide();
 	$('#tab2ID').hide();
 	$('#statesID').hide();
+	$('#cstatesID').hide();
 	$('#ratesID').hide();
 	$('#tab3ID').hide();
 	$('#GraphButtons').hide();
@@ -520,8 +587,11 @@ function downloadmodel() {
 	for([shID, sh] of shapes.shMap) {
 		shType = shID.substring(0,1);
 		if(shType === 's'){
+			if(sh.max !== undefined){text += "maincstate"};
+			if(sh.capacitystate === "left"){text+="leftcstate"};
+			if(sh.capacitystate === "right"){text+="rightcstate"};
 			text += shID; // save the stateID
-			text += '('
+			text += '(' 	// save the position
 			text += sh.x;
 			text += ','
 			text += sh.y;
@@ -529,10 +599,18 @@ function downloadmodel() {
 			text += ',';
 			// it is possible that the user has not yet entered 'The Simulation'
 			// therefore, if graph data was not yet initialized, we simply pick 0 as default
-			if(graph.states[shID] !== undefined){ 
-				text += graph.states[shID].getValue();
+			if(graph.states[shID] !== undefined || (sh.max != undefined && graph.capacitystates[shID] !== undefined)){ 
+				if(sh.max !== undefined){ // for mainstates here we safe the max value, in consistency with the upload 
+					text += graph.capacitystates[shID].getValue();
+				}else{
+					text += graph.states[shID].getValue();
+				}
 			}else{
-				text += '0';
+				if(sh.max !== undefined){ // for mainstates here we safe the max value, in consistency with the upload 
+					text += '100';
+				}else{
+					text += '0';
+				}
 			}
 			text += ',';
 			text += sh.nameArr; // save the state name
@@ -547,6 +625,8 @@ function downloadmodel() {
 		shType = shID.substring(0,1);
 		//first transition then special arrows
 		if(shType === 't' && sh.type === undefined){
+			if(sh.capacitystate === 'left'){text += 'leftctransition';}
+			if(sh.capacitystate === 'right'){text += 'rightctransition';}
 			for(let m = 0; m < sh.nameArr.length; m++){
 				switch (sh.nameArr[m][0]) {
 					case 'r':

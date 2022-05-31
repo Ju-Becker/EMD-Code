@@ -6,6 +6,7 @@ const models = { // model structure of the defaultmodels
 	SIRD: '',
 	SIRV: '',
 	MSEIR: '',
+	SIHRD: '',
 }
 const modelsvitaldynamics = { // model structure of the defaultmodels with vitaldynamics
 	SIRvitaldynamics: '', // for every model there is necessarily a vitaldynamics version 
@@ -15,6 +16,7 @@ const modelsvitaldynamics = { // model structure of the defaultmodels with vital
 	SIRDvitaldynamics: '',
 	SIRVvitaldynamics: '',
 	MSEIRvitaldynamics: '',
+	SIHRDvitaldynamics: '',
 }
 
 models.SIR = 'Epidemic-Model-Data\n';
@@ -73,6 +75,14 @@ models.MSEIR += ':\n';
 models.MSEIR += 't0-0:\n';
 models.MSEIR += '120575,t0,0.01;120573,t0,0.3;120572,t0,0.1;120574,t0,0.1:\n';
 
+models.SIHRD = 'Epidemic-Model-Data\n';
+models.SIHRD += 's0(250,50),1000,119878;s1(250,250),10,119868;maincstates2(400,400),100,119870;leftcstates3(250,550),0,119867;rightcstates4(550,550),0,119863;s5(100,400),0,119877:\n';
+models.SIHRD += 'leftctransition120582,s2,s3;rightctransition120582,s2,s4;120573-(s1),s0,s1;120582,s1,s2;120581,s3,s5;120591,s1,s5:\n';
+models.SIHRD += ':\n';
+models.SIHRD += ':\n';
+models.SIHRD += 't0-0:\n';
+models.SIHRD += '120573,t0,0.5;120582,t0,0.11;120591,t0,0.1;120581,t0,0.1:\n';
+
 
 modelsvitaldynamics.SIRvitaldynamics = 'Epidemic-Model-Data\n';
 modelsvitaldynamics.SIRvitaldynamics += 's0(100,100),1000,119878;s1(300,100),10,119868;s2(500,100),0,119877:\n';
@@ -129,6 +139,14 @@ modelsvitaldynamics.MSEIRvitaldynamics += '120583-(s0)-+-120583-(s2)-+-120583-(s
 modelsvitaldynamics.MSEIRvitaldynamics += '120584-(s0),s0;120584-(s1),s1;120584-(s2),s2;120584-(s3),s3;120584-(s4),s4:\n';
 modelsvitaldynamics.MSEIRvitaldynamics += 't0-0:\n';
 modelsvitaldynamics.MSEIRvitaldynamics += '120575,t0,0.01;120573,t0,0.3;120572,t0,0.1;120574,t0,0.1;120583,t0,0.001;120584,t0,0.001:\n';
+
+modelsvitaldynamics.SIHRDvitaldynamics = 'Epidemic-Model-Data\n'
+modelsvitaldynamics.SIHRDvitaldynamics += 's0(139,118),1000,119878;s1(250,250),10,119868;maincstates2(400,400),100,119870;leftcstates3(250,550),0,119867;rightcstates4(550,550),0,119863;s5(100,400),0,119877:\n'
+modelsvitaldynamics.SIHRDvitaldynamics += 'leftctransition120582,s2,s3;rightctransition120582,s2,s4;120573-(s1),s0,s1;120582,s1,s2;120581,s3,s5;120591,s1,s5:\n'
+modelsvitaldynamics.SIHRDvitaldynamics += '120583-(s0)-+-120583-(s1)-+-120583-(s3)-+-120583-(s5),s0:\n'
+modelsvitaldynamics.SIHRDvitaldynamics += '120584-(s1),s1;120584-(s0),s0;120584-(s5),s5;120584-(s3),s3:\n'
+modelsvitaldynamics.SIHRDvitaldynamics += 't0-0:\n'
+modelsvitaldynamics.SIHRDvitaldynamics += '120573,t0,0.7;120582,t0,0.11;120591,t0,0.1;120581,t0,0.1;120583,t0,0.1;120584,t0,0.1:\n'
 
 
 export {models, modelsvitaldynamics};

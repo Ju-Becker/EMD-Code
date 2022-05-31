@@ -173,11 +173,26 @@ alpAct.systemupdate = (systemState) => {
 	let divkeys = document.getElementById('inID');
 	switch (systemState){
 		case 's':
-			divkeys.style.visibility = 'visible';
-			editor.visibility('visible');
-			editor.updateSpecialKeys('s');
-			editor.Alphabetvisibility('hidden');
-			editor.StateKeysvisibility('hidden');
+			if(ss.activeShape.type ==='special'){
+				divkeys.style.visibility = 'visible';
+	  		editor.visibility('visible');
+	  		editor.updateSpecialKeys('sspecial');
+	  		editor.Alphabetvisibility('hidden');
+	  		editor.StateKeysvisibility('hidden');
+			}else if(ss.activeShape.capacitystate !==undefined){
+				divkeys.style.visibility = 'visible';
+	  		editor.visibility('visible');
+	  		editor.updateSpecialKeys('cspecial');
+	  		editor.Alphabetvisibility('hidden');
+	  		editor.StateKeysvisibility('hidden');
+			}
+			else{
+	  		divkeys.style.visibility = 'visible';
+	  		editor.visibility('visible');
+	  		editor.updateSpecialKeys('s');
+	  		editor.Alphabetvisibility('hidden');
+	  		editor.StateKeysvisibility('hidden');
+			}
 			break;
 		case 'sr':
 			divkeys.style.visibility = 'visible';
@@ -217,6 +232,12 @@ alpAct.systemupdate = (systemState) => {
 					break;
 				default:
 					break;
+			}
+			if(ss.activeShape.capacitystate !== undefined){
+				divkeys.style.visibility = 'hidden';
+				editor.visibility('hidden');
+				editor.Alphabetvisibility('hidden');
+				editor.StateKeysvisibility('hidden');
 			}
 			break;
 		case 'tr':

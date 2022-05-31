@@ -8,8 +8,14 @@ const graph = {};
 graph.curves = {}; // contains the (plot)-curves of the graph
 graph.data = {}; // container for storing data
 graph.states = {}; // contains all states
+graph.capacitystates = {};
+graph.linktocapacitystate = {};
+graph.linktcstateleftstate = {};
+graph.capacityfunction = {};
+graph.selectedfunction = {}; // used to save the smoothing functin according to the state
 graph.rates = {}; // contains transmittion rates
 graph.statesMap = {}; // maps keys fo states to indices, as ode-method only works with arrays not objects
+graph.capacitystatesMap = {};
 graph.interventions = {}; // contains interventions
 
 function graphInit() {
@@ -54,6 +60,16 @@ function graphInit() {
 		});
 	};
 	// ----------------------------------------------------------------------------
+	graph.savecapacityStates = () => {
+		graph.data.capacitystates = {};
+		Object.keys(graph.capacitystates).forEach((key) => {
+			graph.data.capacitystates[key] = {};
+			graph.data.capacitystates[key].value = graph.capacitystates[key].getValue();
+			graph.data.capacitystates[key].name = graph.capacitystates[key].name;
+		});
+
+	}
+	// ----------------------------------------------------------------------------
 	graph.saveInterventions = () => {
 		// For each intervention, we need to save "key" and "value"
 		// save interventions to graph.data.interventions
@@ -81,6 +97,7 @@ function graphInit() {
 	graph.save = () => {
 		// Save points, rates and interventions
 		graph.saveStates();
+		graph.savecapacityStates();
 		graph.saveRates();
 		graph.saveInterventions();
 	};
@@ -345,7 +362,351 @@ function graphInit() {
 		graph.setLegend();
 		graph.setLegendFunction();
 	};
+	// ----------------------------------------------------------------------------
+	graph.loadcstates = () => {
+		graph.capacitystatesMap = {};
+		// pause board.update() for better performance
+		graph.board.suspendUpdate();
+		Object.values(graph.capacitystates).forEach((value) => {
+			graph.board.removeObject(value.plotPoint);
+			graph.board.removeObject(value.capacityline.point1);
+			graph.board.removeObject(value.capacityline.point2);
+			graph.board.removeObject(value.capacityline);
+			JXG.JSXGraph.freeBoard(value.board);
+		});
+		graph.board.removeObject(graph.labels);
+		// resume board.update()
+		graph.board.unsuspendUpdate();
+		// Reset legend on left side
+		// Remove old legend first
+		// all object in graph.state have been removed, graph.states can be reset
+		graph.capacitystates = {};
+		if(graph.data.capacitystates !== undefined){
+		for (let i = 0; i < Object.keys(graph.data.capacitystates).length; i++){
+			graph.capacitystatesMap[Object.keys(graph.data.capacitystates)[i]] = i;
+		}
+		}
 
+		// Create line on y-axis that contains initial values
+		const line2 = graph.board.create(
+			'line',
+			[() => -1 * graph.interventions.t0.getValue(), () => 1, () => 0],
+			{ visible: false },
+		);
+		$('#cstatesID').empty();
+		$('#cstatesID').append('<table>');
+		// Create new legend
+		// Set legend tab as visible so that objects can be added
+		document.getElementById('cstatesID').style.display = 'block';
+		// forEach automatically creates a closure, in contrast to for loops
+		// which need a manual closure
+		if(graph.data.capacitystates !== undefined){
+		Object.keys(graph.data.capacitystates).forEach((key) => {
+			let x = 0;
+			graph.capacitystates[key] = {};
+			graph.capacitystates[key].name = graph.data.capacitystates[key].name;
+			$('#cstatesID').append(
+				'<tr><td><div class="stateName" >' +
+					graph.capacitystates[key].name +
+					' = ' +
+					'</div></td><td><div contenteditable="true" class="stateText"  id= "text' +
+					key +
+					'">' +
+					(graph.data.capacitystates[key].value < graph.eps	
+						? x.toExponential(3)									
+						: graph.data.capacitystates[key].value.toExponential(3)) +
+					'</div></td>' +
+					'<td><div class="stateBoard" tabindex="1" id= "board' +
+					key +
+					'"></div></td></tr>',
+			);
+		
+				// add JSXGraph board to stateBoard
+			// configure board such that only scrolling with the mouse whell moves the axis
+			graph.capacitystates[key].board = JXG.JSXGraph.initBoard('board' + key, {
+				axis: false,
+				maxboundingbox: [-Infinity, Infinity, Infinity, -Infinity],
+				showCopyright: false,
+				showNavigation: false,
+				showInfobox: false,
+				highlight: false,
+				highlightInfobox: false,
+				pan: { enabled: true, needshift: false },
+				zoom: {
+					factorX: 1.05,
+					factorY: 1,
+					wheel: true,
+					needshift: false,
+					eps: 0.01,
+				},
+			});
+			// Creating Point on side board that displays initial values of state
+			graph.capacitystates[key].point = graph.capacitystates[key].board.create(
+				'point',
+				[cutOffLog(graph.data.capacitystates[key].value), 0],
+				{
+					name: graph.data.capacitystates[key].name,
+					visible: true,
+					highlight: false,
+					highlightInfobox: false,
+					label: { offset: [0, -25] },
+					color: graph.capacitycolors[graph.capacitystatesMap[key]],
+					fixed: true,
+					showInfobox: false,
+				},
+			);
+
+				// Setting appropriate boundingbox to center point on board
+			graph.capacitystates[key].board.setBoundingBox([
+				cutOffLog(graph.data.capacitystates[key].value) - 2,
+				0.1,
+				cutOffLog(graph.data.capacitystates[key].value) + 2,
+				-0.1,
+			]);
+			// Setting frozen=true is important, so that scrolling only moves the axis not the point
+			graph.capacitystates[key].point.setAttribute({ frozen: true });
+
+			// Creating getValue() for easy access to states value
+			graph.capacitystates[key].getValue = function get() {
+				return inverseCutOffLog(this.point.X());
+			};
+
+
+			// Create custom axis
+			const Axis = graph.capacitystates[key].board.create('axis', [
+				[0, 0],
+				[1, 0],
+			]);
+			Axis.removeAllTicks();
+			// Create custom ticks with loarithmic scale
+			graph.capacitystates[key].board.create('ticks', [Axis, 1], {
+				drawLabels: true, // Needed, and only works for equidistant ticks
+				minorTicks: 0, // The NUMBER of small ticks between each Major tick
+				drawZero: true,
+				// implement cutoffs at 0 -> 1 and 12 -> 0
+				generateLabelText: (tick, zero) => {
+					if (tick.usrCoords[1] - zero.usrCoords[1] <= -12) return 0;
+					return (
+						'$10^{' +
+						1 * Math.floor(tick.usrCoords[1] - zero.usrCoords[1]) +
+						'}$'
+					);
+				},
+			});
+
+
+
+			// Create points on graph.board, displaying inital values
+			graph.capacitystates[key].plotPoint = graph.board.create(
+				'glider',
+				[0, inverseCutOffLog(graph.capacitystates[key].point.X())/getnormforcreate(), line2],
+				{
+					color: graph.capacitycolors[graph.capacitystatesMap[key]],
+					name: '' + graph.data.capacitystates[key].name + '(0)',
+					label: { autoPosition: true, visible: false },
+					showInfobox: false,
+					highlight: false,
+					fixed: true,
+					size: 2,
+				},
+			);
+			//create line to visualize the max capacity
+			graph.capacitystates[key].capacityline = graph.board.create(
+				'line',
+				[[graph.interventions.t0.getValue(), inverseCutOffLog(graph.capacitystates[key].point.X())/getnormforcreate()],[graph.tEnd.X(), inverseCutOffLog(graph.capacitystates[key].point.X())/getnormforcreate()]],
+				{
+					straightFirst:false, 
+					straightLast:false,
+					strokeWidth: 0.5,
+					color: graph.capacitycolors[graph.capacitystatesMap[key]],
+					dash: 4,
+					highlight: false,
+				}
+			);
+			//---------------------------------------
+
+			// Add function to scroll
+			// scrolling changes the boundingbox, but as the point is frozen the value
+			// of the point is changed, as intended
+			// change in the value of the point is then transferred to text input
+			graph.capacitystates[key].board.on('boundingbox', () => {
+				const bb = graph.capacitystates[key].board.getBoundingBox();
+				graph.capacitystates[key].board.setBoundingBox([bb[2] - 4, 0.1, bb[2], -0.1]);
+				// Setting the new value to text Input
+				/*if (graph.states[key].getValue() >= 1) {
+					document.getElementById('text' + key).innerHTML = 1;
+				} else if (graph.states[key].getValue() >= 0.0001) {
+					document.getElementById('text' + key).innerHTML = graph.states[key]
+						.getValue()
+						.toFixed(4);
+				} else if (graph.states[key].getValue() === 0) {
+					document.getElementById('text' + key).innerHTML = 0;
+				} else {
+					document.getElementById('text' + key).innerHTML = graph.states[key]
+						.getValue()
+						.toExponential(3);
+				}*/
+				let x=0;
+				if (graph.capacitystates[key].getValue() <= graph.eps) {
+					document.getElementById('text' + key).innerHTML = x.toExponential(3);
+				} else {
+					document.getElementById('text' + key).innerHTML = graph.capacitystates[key]
+						.getValue()
+						.toExponential(3);
+				}
+				// Adjusting the point on graph.board to new value
+				Object.keys(graph.capacitystates).forEach((key) => {
+					graph.capacitystates[key].plotPoint.setPositionDirectly(JXG.COORDS_BY_USER, [
+						0,
+						graph.yPost(inverseCutOffLog(graph.capacitystates[key].point.X())/getnorm()),
+					]);
+					// update the capacity line to new value , i.e. update the to points spanning up the line
+					// point1
+					graph.capacitystates[key].capacityline.point1.setPositionDirectly(JXG.COORDS_BY_USER, 
+						[graph.interventions.t0.getValue(), graph.yPost(inverseCutOffLog(graph.capacitystates[key].point.X())/getnorm())]
+					);
+					// point2
+					graph.capacitystates[key].capacityline.point2.setPositionDirectly(JXG.COORDS_BY_USER, 
+						[graph.tEnd.X(), graph.yPost(inverseCutOffLog(graph.capacitystates[key].point.X())/getnorm())]
+					);
+				});
+				// Plot curves with new inital values
+				graph.plotCurves();
+			});
+
+			// Add function to text input
+			// Text input is applied when input loses focus
+			$(document).focusout('#text' + key, () => {
+				// Making sure that only the right focusout-events are considered
+				// chrome triggers focusout when diplay is changed to none
+				if ($('#cstatesID').css('display') === 'block') {
+					// set value of point on graph.board
+					Object.keys(graph.capacitystates).forEach((key) => {
+						graph.capacitystates[key].plotPoint.setPositionDirectly(JXG.COORDS_BY_USER, [
+							0,
+							graph.yPost(parseFloat($('#text' + key).text())/getnorm()),
+						]);
+						graph.capacitystates[key].capacityline.point1.setPositionDirectly(JXG.COORDS_BY_USER, 
+							[graph.interventions.t0.getValue(), graph.yPost(parseFloat($('#text' + key).text())/getnorm())]
+						);
+						graph.capacitystates[key].capacityline.point2.setPositionDirectly(JXG.COORDS_BY_USER, 
+							[graph.tEnd.X(), graph.yPost(parseFloat($('#text' + key).text())/getnorm())]
+						);
+					});
+					// adjusting grahical input
+					graph.capacitystates[key].board.setBoundingBox([
+						cutOffLog(parseFloat($('#text' + key).text())) - 2,
+						0.1,
+						cutOffLog(parseFloat($('#text' + key).text())) + 2,
+						-0.1,
+					]);
+				}
+			});
+			// test for the fitting function
+			
+			// test for the fitting function
+		});
+	}
+
+
+		// Closing </table> in above html
+		$('#cstatesID').append('</table>');
+		// Setting diplay to none for operations on transmittion rates
+		document.getElementById('cstatesID').style.display = 'none';
+
+		graph.setLegend();
+		graph.setLegendFunction();
+
+		// test for the fitting function
+		
+		// set the fitting function which smooths the graph according to the specialstate
+		if(Object.keys(graph.capacitystates).length !== 0){ 
+			let liststring = ''; // creating all the list elements
+			let first = true; // first element is selected by default
+			Object.keys(graph.capacitystates).forEach((key) => {
+				if(graph.selectedfunction[key] === undefined){
+				graph.capacityfunction[graph.linktcstateleftstate[key]] = function (x,population) {return (1-Math.exp(-x*x*1/population));}
+				graph.selectedfunction[key] = [];
+				graph.selectedfunction[key]['expfct'] = true;
+				graph.selectedfunction[key]['sqrfct'] = false;
+				graph.selectedfunction[key]['arctanfct'] = false;
+				}
+				liststring += '<option value =';
+				liststring +=	key;
+				if(first){liststring += ' selected'; first = false;}
+				liststring +=	'>';
+				liststring +=	graph.capacitystates[key].name;
+				liststring +=	'</option>';
+			});
+			// determine the key of the state on the left side of the cstate to adress the specialfunction right
+			// see ode.js for details
+		$('#cstatesID').append(
+			'<div style="font-family:\'Arial\'; font-size:15px">'+
+			'Choose the fitting function for the state:'+
+			'<select id="cselect">'+
+			liststring+
+			'</select> ' +
+
+			'</div>'+
+			'<div>'+
+   		'<input type="checkbox" id="expfct" checked>'+
+    	'<label for="expfct" style="font-family:\'Arial\'; font-size:15px; margin-right: 6px;">Exp</label>' +
+   		'<input type="checkbox" id="sqrfct">'+
+    	'<label for="sqrfct" style="font-family:\'Arial\'; font-size:15px; margin-right: 6px;">Sqr</label>' +
+   		'<input type="checkbox" id="arctanfct">'+
+    	'<label for="arctanfct" style="font-family:\'Arial\'; font-size:15px; margin-right: 6px;">Arctan</label>' +
+ 			'</div>'
+		);
+		document.getElementById('expfct').addEventListener('click', function () {
+			document.getElementById('expfct').checked = true;
+			document.getElementById('sqrfct').checked = false;
+			document.getElementById('arctanfct').checked = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = true;
+			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false;
+			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (1-Math.exp(-x*x*1/population));}
+			graph.plotCurves();
+		});
+		document.getElementById('sqrfct').addEventListener('click', function () {
+			document.getElementById('expfct').checked = false;
+			document.getElementById('sqrfct').checked = true;
+			document.getElementById('arctanfct').checked = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = true;
+			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false;
+			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (1-1/Math.sqrt(1+x*x*1/population));}
+			graph.plotCurves();
+		});
+		document.getElementById('arctanfct').addEventListener('click', function () {
+			document.getElementById('expfct').checked = false;
+			document.getElementById('sqrfct').checked = false;
+			document.getElementById('arctanfct').checked = true;
+			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = true;
+			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (1-1/(1+Math.atan(x)*Math.atan(x)));}
+			graph.plotCurves();
+		});
+		document.getElementById('cselect').addEventListener('change', function () {
+			let func;
+			for(func in graph.selectedfunction[document.getElementById('cselect').value]){
+				document.getElementById(func).checked = graph.selectedfunction[document.getElementById('cselect').value][func];
+			}
+		})
+		Object.keys(graph.capacitystates).forEach((key) => { // set buttons according to the stored data
+			let func;
+			for(func in graph.selectedfunction[key]){
+				if(graph.selectedfunction[key][func]){
+					document.getElementById('cselect').value = key;
+					document.getElementById(func).click();
+				}
+			}
+		});
+	}
+	// test for the fitting function
+
+
+	};
 	// ----------------------------------------------------------------------------
 	graph.loadInterventions = () => {
 		// Reset graph.interventionArray
@@ -666,19 +1027,28 @@ graph.load = () => {
 	$('#ratesID').show();
 	$('#tab3ID').show();
 	$('#statesID').hide();
+	$('#cstatesID').hide();
 	graph.loadInterventions();
 	$('#ratesID').hide();
 	$('#tab3ID').hide();
 	$('#statesID').show();
+	$('#cstatesID').show();
 	graph.loadStates();
+	$('#ratesID').hide();
+	$('#tab3ID').hide();
+	$('#statesID').show();
+	$('#cstatesID').show();
+	graph.loadcstates();
 	$('#ratesID').show();
 	$('#tab3ID').show();
 	$('#statesID').hide();
+	$('#cstatesID').hide();
 	graph.loadRates();
 	// Reset to standard view
 	$('#ratesID').hide();
 	$('#tab3ID').hide();
 	$('#statesID').show();
+	$('#cstatesID').show();
 	$('#Values').addClass('active');
 	$('#Rates').removeClass('active');
 };
@@ -724,6 +1094,31 @@ graph.update = () => {
 	Object.keys(graph.data.rates).forEach((key) => {
 		if (!odeExport.rates.has(key)) delete graph.data.rates[key];
 	});
+	//---------------------
+	// check if capacitystates have been added or removed
+	odeExport.capacitystates.forEach((value,key) => {
+		// check if new state has been added
+		if (!Object.keys(graph.data.capacitystates).includes(key)) {
+			graph.data.capacitystates[key] = {};
+			graph.data.capacitystates[key].name = value;
+			graph.data.capacitystates[key].value = 100;
+			// check if state has been altered
+		} else if (graph.data.capacitystates[key].name !== value) {
+			graph.data.capacitystates[key].name = value;
+		}
+	});
+	//---------------------
+	odeExport.linktocapacitystate.forEach((value,key) => {
+		graph.linktocapacitystate[key] = value;
+	});
+	odeExport.linktcstateleftstate.forEach((value,key) => {
+		graph.linktcstateleftstate[key] = value;
+	});
+	// check if caoacitystate has been removed
+	Object.keys(graph.data.capacitystates).forEach((key) => {
+		if (!odeExport.capacitystates.has(key)) delete graph.data.capacitystates[key];
+	});
+	//----------------------
 	// Load modified graph.states
 	graph.load();
 	// Plot new curves

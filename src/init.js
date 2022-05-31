@@ -28,15 +28,18 @@ graph.colors = [
 	'Cyan',
 	'DarkMagenta',
 	'DarkGreen',
+];
+
+graph.capacitycolors = [
 	'Fuchsia',
+	'Lime',
 	'Indigo',
 	'Khaki',
-	'Lime',
 	'Magenta',
 	'Maroon',
 	'Navy',
 	'Olive',
-];
+]
 
 function initalTEnd() {
 	// initializing t_\infty

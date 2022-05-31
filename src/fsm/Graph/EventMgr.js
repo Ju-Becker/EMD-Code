@@ -132,13 +132,14 @@ function initEventManager(
 	canvas,
 	systemState,
 	stateActions,
+	specialstateActions,
 	transitionActions,
 	stateKeys,
 	transitionKeys,
 ) {
 	initCanvasEvents(canvas, eMgr);
 	ss = systemState;
-	iEM.init(ss, stateActions);
+	iEM.init(ss, stateActions, specialstateActions);
 	sEM.init(ss, stateActions, stateKeys);
 	tEM.init(ss, transitionActions, transitionKeys);
 }

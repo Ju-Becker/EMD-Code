@@ -6,6 +6,9 @@
 const odeMgr = {}; // declaration of the object, functions are added at the end
 let odeHTML = {}; // the HTML div, initialized in function init (called by fsm)
 let ode = {}; // the ode data structure
+let capacitystates = {};
+let linktocapacitystate = {};
+let linktcstateleftstate = {};
 
 /*
  * function initODE
@@ -20,10 +23,29 @@ function initODE(shapes) {
 	let id;
 	let sh;
 	ode = new Map();
+	capacitystates = [];
+	linktocapacitystate = new Map();
+	linktcstateleftstate = new Map();
 	// eslint-disable-next-line guard-for-in, no-restricted-syntax
 	for ([id, sh] of shapes) {
+		if (id.substring(0, 1) === 't') {
+			if (sh.capacitystate === "left"){
+				linktcstateleftstate.set(sh.source.id, sh.target.id);
+			}
+		}
 		if (id.substring(0, 1) === 's') {
-			ode.set(sh, []);
+			if(sh.max === undefined){ // special states don't have an ode
+				ode.set(sh, []);
+			}else{
+				capacitystates.push(sh);
+				let cid;
+				let csh;
+				for ([cid, csh] of shapes) {
+					if (cid.substring(0, 1) === 't' && csh.source === sh && csh.capacitystate !== undefined) {
+						linktocapacitystate.set(csh.target.id,id);
+					}
+				}
+			}
 		}
 	}
 }
@@ -132,6 +154,36 @@ function addTransitionToState(st, tr, s) {
 	}
 }
 
+function addTransitionTospecialState(st, tr, shape, shapes, capacitystate,s) {
+	let source;
+	//--------------
+	let id;
+	let sh;
+	let friendstateid;
+	for ([id, sh] of shapes) {
+		if (id.substring(0, 1) === 't' && sh.source === shape.source && sh.capacitystate === 'left') {
+			friendstateid = sh.target.id;
+		}
+	} 
+	s = capacitystate === 'right' ? friendstateid : 3;//--------------------------------------------
+	const sLen = tr.length;
+	const stArr = ode.get(st);
+	const specialstate = shape.source;
+	for ([id, sh] of shapes) {
+		if (id.substring(0, 1) === 't') {
+			if(sh.target === specialstate){
+				source = sh.source;
+			}
+		}
+	}
+	if(source !== undefined){
+		tr[0][1][1] = source;
+		for (let sInd = 0; sInd < sLen; sInd += 1) {
+			stArr.push({ sign: s, prod: tr[sInd], });
+		}
+	}	
+}
+
 /*
  * function odeBuild
  * Argument shapes: shapes.shMap in Graph/Shapes.js
@@ -159,18 +211,28 @@ odeMgr.odeBuild = (shapes) => {
 	// eslint-disable-next-line guard-for-in, no-restricted-syntax
 	for ([id, sh] of shapes) {
 		if (id.substring(0, 1) === 't') {
-			if(sh.type !== undefined){
-				trArr = splitTransitionspecial(sh);
-				if(sh.type === 'in'){
-					addTransitionToState(sh.target, trArr, +1);
-				}else{
-					addTransitionToState(sh.source, trArr, -1);
+	  	if(sh.capacitystate === undefined){ // capacitystate is left/right when the transition is connected to a specialstate
+	  		if(sh.type !== undefined){
+	  			trArr = splitTransitionspecial(sh);
+	  			if(sh.type === 'in'){
+	  				addTransitionToState(sh.target, trArr, +1);
+	  			}else{
+	  				addTransitionToState(sh.source, trArr, -1);
+	  			}
+	  		}   
+	  		else if(sh.target.max === undefined) {
+	  			trArr = splitTransition(sh);
+	  			addTransitionToState(sh.source, trArr, -1);
+	  			addTransitionToState(sh.target, trArr, +1);
+	  		} else{
+					trArr = splitTransition(sh);
+	  			addTransitionToState(sh.source, trArr, -1);
+	  			//addTransitionToState(sh.target, trArr, +1);
 				}
-			}   
-			else {
+			}
+			else{
 				trArr = splitTransition(sh);
-				addTransitionToState(sh.source, trArr, -1);
-				addTransitionToState(sh.target, trArr, +1);
+				addTransitionTospecialState(sh.target, trArr, sh, shapes, sh.capacitystate, +1);
 			}
 		}
 	}
@@ -221,11 +283,63 @@ odeMgr.update = (shapes) => {
 		sLen = sArr.length;
 		signRequired = false;
 		// eslint-disable-next-line guard-for-in, no-restricted-syntax
+		let first = true;
 		for (sInd = 0; sInd < sLen; sInd += 1) {
 			statescount = 0; //reset the statescount
 			if (sArr[sInd].sign < 0) prodStr = '–';
 			else if (signRequired) prodStr = '+';
 			else prodStr = '';
+			if(first && st.capacitystate === 'left'){
+				prodStr += String.fromCodePoint(119892);
+				prodStr += '(';
+				let superid;
+				let supersh;
+				for ([superid, supersh] of shapes) {
+					if (superid.substring(0, 1) === 't' && supersh.capacitystate === 'left' && supersh.target === st){
+						prodStr += supersh.source.name;
+					}
+				}
+				/*prodStr += String.fromCodePoint(119898);
+				prodStr += String.fromCodePoint(119886);
+				prodStr += String.fromCodePoint(119909);*/
+				//prodStr += '100';
+				prodStr += '-';
+				prodStr += st.name;
+				prodStr += ')'
+				first = false;
+			}
+			if(first && st.capacitystate === 'right'){
+				prodStr += '(1-';
+				prodStr += String.fromCodePoint(119892);
+				prodStr += '(';
+				let superid;
+				let supersh;
+				for ([superid, supersh] of shapes) {
+					if (superid.substring(0, 1) === 't' && supersh.capacitystate === 'right' && supersh.target === st){
+						prodStr += supersh.source.name;
+					}
+				}
+				/*prodStr += String.fromCodePoint(119898);
+				prodStr += String.fromCodePoint(119886);
+				prodStr += String.fromCodePoint(119909);*/
+				//prodStr += '100';
+				prodStr += '-';
+				let idspecialtransition;
+				let shspecialtransition;
+				for ([idspecialtransition, shspecialtransition] of shapes) {
+					if (idspecialtransition.substring(0, 1) === 't' && shspecialtransition.capacitystate === 'right' && shspecialtransition.target === st){
+						let idspecialstate;
+						let shspecialstate;
+						for ([idspecialstate, shspecialstate] of shapes) {
+							if(idspecialstate.substring(0, 1) === 't' && shspecialstate.capacitystate === 'left' && shspecialstate.source === shspecialtransition.source){
+								prodStr += shspecialstate.target.name;
+							}
+						}
+					}
+				}
+				prodStr += '))';
+				first = false;
+			}
 			pArr = sArr[sInd].prod;
 			pLen = pArr.length;
 			// eslint-disable-next-line guard-for-in, no-restricted-syntax
@@ -286,5 +400,8 @@ odeMgr.init = (cont) => {
 
 // getter for the ode data structure
 odeMgr.getODEs = () => ode;
+odeMgr.getcapacitystates = () => capacitystates;
+odeMgr.getlinktocapacitystate = () => linktocapacitystate;
+odeMgr.getlinktcstateleftstate = () => linktcstateleftstate;
 
 export default odeMgr;

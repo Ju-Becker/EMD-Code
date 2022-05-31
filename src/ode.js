@@ -24,11 +24,21 @@ function ode() {
 			odeExport.equations.forEach((sumArray, stID) => {
 				population += I[graph.statesMap[stID]];
 			});
+			//function for the special states:
+			var specialstatefunction = graph.capacityfunction;
+			//--------------------------------
 			odeExport.equations.forEach((sumArray, stID) => {
 				sumArray.forEach((contribution) => {
 					statecount = false;
 					// sign of the contribution
 					let tempProd = contribution.sign > 0 ? 1 : -1;
+					//--------------------
+					if(contribution.sign !== 1 && contribution.sign !== -1 && contribution.sign !== 3){
+						tempProd = (1-specialstatefunction[contribution.sign](graph.capacitystates[graph.linktocapacitystate[stID]].getValue()-I[graph.statesMap[contribution.sign]],population));
+					}else if(contribution.sign === 3){
+						tempProd = specialstatefunction[stID](graph.capacitystates[graph.linktocapacitystate[stID]].getValue()-I[graph.statesMap[stID]],population);
+					}
+					//-------------------------
 					// The array contribution.prod containing the factors
 					contribution.prod.forEach((factor) => {
 						if (factor[0] === 'r') {

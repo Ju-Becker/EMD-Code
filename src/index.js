@@ -25,6 +25,7 @@ function initClickFunction() {
 		$('#plotID').hide();
 		$('#tab2ID').hide();
 		$('#statesID').hide();
+		$('#cstatesID').hide();
 		$('#ratesID').hide();
 		$('#tab3ID').hide();
 		$('#GraphButtons').hide();
@@ -62,6 +63,7 @@ function initClickFunction() {
 		$('#plotID').hide();
 		$('#tab2ID').hide();
 		$('#statesID').hide();
+		$('#cstatesID').hide();
 		$('#ratesID').hide();
 		$('#tab3ID').hide();
 		$('#GraphButtons').hide();
@@ -79,6 +81,7 @@ function initClickFunction() {
 		$('#plotID').hide();
 		$('#tab2ID').hide();
 		$('#statesID').hide();
+		$('#cstatesID').hide();
 		$('#ratesID').hide();
 		$('#tab3ID').hide();
 		$('#GraphButtons').hide();
@@ -114,6 +117,7 @@ function initClickFunction() {
 		$('#ratesID').show();
 		$('#tab3ID').show();
 		$('#statesID').hide();
+		$('#cstatesID').hide();
 		$('#Rates').addClass('active');
 		$('#Values').removeClass('active');
 		Object.values(graph.rates).forEach((value) => {
@@ -124,11 +128,13 @@ function initClickFunction() {
 		$('#ratesID').hide();
 		$('#tab3ID').hide();
 		$('#statesID').show();
+		$('#cstatesID').show();
 		$('#Values').addClass('active');
 		$('#Rates').removeClass('active');
 		Object.values(graph.states).forEach((value) => {
 			value.board.update();
 		});
+		document.getElementById('cstatesID').focus();
 	});
 }
 

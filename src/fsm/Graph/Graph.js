@@ -26,6 +26,7 @@ import transitionActions from './TransitionActions'; // actions for transitions 
 import modelChange from './ModelChange'; // model change event manager
 import alpAct from '../TransitionEditor/AlphabetActions'; //actions for the alphabet (delete a state/transition/specialArrow, rename ..., etc)
 import specialArrowActions from './SpecialArrowActions'; //actions for the specialArrows (rename, create, arrangement, etc)
+import specialStateActions from './SpecialStatesActions';
 
 
 // Current System State, containes all the information we need at a given time
@@ -76,14 +77,16 @@ fsmCSS.init = () => {
 		constants.hitTargetPadding,
 		constants.instancesLimit,
 	);
-	transitionActions.init(shapes, fsmCSS, constants.instancesLimit, specialArrowActions);
+	transitionActions.init(shapes, fsmCSS, constants.instancesLimit, specialArrowActions, specialStateActions);
 	specialArrowActions.init(shapes, fsmCSS, constants.specialArrowLimit); 
 	stateActions.init(
 		shapes,
 		fsmCSS,
 		transitionActions,
+		specialStateActions,
 		constants.instancesLimit,
 	);
+	specialStateActions.init(shapes, fsmCSS, transitionActions, constants.instancesLimit);
 	alpAct.init(fsmCSS, transitionActions, stateActions, specialArrowActions, infotips); 
 	fsmCSS.helpBox = document.getElementById('helpID'); // get the HTML div for the tooltips
 	fsmCSS.helpBox.innerHTML = fsmCSS.help.i; //tooltips for system state idle
@@ -91,6 +94,7 @@ fsmCSS.init = () => {
 		constants.canvas,
 		fsmCSS,
 		stateActions,
+		specialStateActions,
 		transitionActions,
 		constants.stateKeys,
 		constants.transitionKeys,

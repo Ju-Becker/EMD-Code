@@ -11,6 +11,7 @@ import State from './State';
 let shapes = {}; //shapes array, Graph/Shapes.js
 let ss = {}; // fsmCSS, Graph/Graph.js
 let trAct = {}; // transitionActions
+let spsAct = {};
 let instLimit = 0; // instance limit for id generation
 const stAct = {}; // main object here
 
@@ -27,6 +28,7 @@ stAct.stateSelectTransitionTarget = (e) => {
 	shAct.deactivate();
 	const tr = trAct.transitionCreate(shAct, sh);
 	// no object change yet, only after we have a name
+	if(tr === null) return;
 	ss.systemStateActivate('tr', tr);
 	shapes.draw();
 };
@@ -130,6 +132,17 @@ stAct.renameValidate = () => {
 		return false;
 	}
 	if (st.name !== ss.nameOld) {
+		//--------------
+  	let capacitystates = spsAct.returncapacitystatesbystate(st);
+  	let namesubscript = 8320;
+  	for (let i = 0; i < capacitystates.length; i++) {
+  		namesubscript++;
+  		capacitystates[i].name = st.name.concat([String.fromCodePoint(namesubscript)]);
+  		capacitystates[i].nameArr = st.nameArr.concat([namesubscript]);
+  		//capacitystates[i].nameAddChr(namesubscript);
+  		shapes.draw();
+  	}
+	  //--------------
 		st.updateTransitions();
 		ss.callback(shapes.shMap);
 	}
@@ -194,6 +207,7 @@ stAct.stateCreate = (e) => {
 // we delete the state and inform stakeholders on the model change
 stAct.stateDelete = (sh) => {
 	let id;
+	let specialstates = spsAct.returncapacitystatesbystate(sh); // if a capacitystate is deleted all specialstates must be deleted too
 	sh.deactivate();
 	// eslint-disable-next-line guard-for-in, no-restricted-syntax
 	for (id in sh.transitions.in) {
@@ -207,15 +221,19 @@ stAct.stateDelete = (sh) => {
 	for (id in sh.transitions.factor) {
 		trAct.transitionDelete(shapes.getShape(id), false);
 	}
-	shapes.deleteShape(sh.id);
+	shapes.deleteShape(sh.id); 
+	for (let i = 0; i < specialstates.length; i++) { // if a capacitystate is deleted all specialstates must be deleted too
+		stAct.stateDelete(specialstates[i]);	
+	}
 	ss.callback(shapes.shMap);
 };
 
 // called by fsmCSS.init in Graph.js
-stAct.init = (shapeMgr, systemState, transitionActions, instanceLimit) => {
+stAct.init = (shapeMgr, systemState, transitionActions, specialStateActions, instanceLimit) => {
 	shapes = shapeMgr;
 	ss = systemState;
 	trAct = transitionActions;
+	spsAct = specialStateActions;
 	instLimit = instanceLimit;
 };
 

@@ -12,6 +12,7 @@ import Transition from './Transition';
 let shapes = {};
 let ss = {};
 let spaAct = {};
+let spsAct = {}
 let instLimit = 0;
 const trAct = {};
 
@@ -24,6 +25,8 @@ trAct.transitionCreate = (source, target) => {
 		alert('Only ' + instLimit + ' transitions allowed, limit reached!');
 		return null;
 	}
+	if(source.max !== undefined) return null; // only important if new target is a specialState
+	if(spsAct.inserttransitionlimitreached(target) && target.max !== undefined) return null; // only important if new target is a specialState
 	const tr = new Transition(id, source, target);
 	shapes.addShape(id, tr);
 	return tr;
@@ -41,6 +44,15 @@ trAct.transitionSelectTarget = (e) => {
 	if (sh.id === ss.activeShape.source.id) return;
 	if (sh.id === ss.activeShape.target.id) return;
 	if(spaAct.limitspAinreached(sh)){alert("limit reached"); return;} //only important for instances of the class specialArrow
+	if(sh.capacitystate !== undefined) return; // only important if new target is a specialState
+	if(spsAct.inserttransitionlimitreached(sh) && (sh.max !== undefined || sh.capacitystate !== undefined)) return; // only important if new target is a specialState
+	//----------------
+	let capacitytransitions = spsAct.returncapacitytransitionsbystate(sh);
+	for (let i = 0; i < capacitytransitions.length; i++) {
+		capacitytransitions[i].name = ss.activeShape.name;
+		capacitytransitions[i].nameArr = ss.activeShape.nameArr;
+	}
+	//----------------
 	ss.activeShape.deactivate(); // back to normal colours
 	ss.activeShape.setTarget(sh);
 	ss.activeShape.activate();
@@ -58,6 +70,7 @@ trAct.transitionSelectSource = (e) => {
 	if (sh.id === ss.activeShape.source.id) return;
 	if (sh.id === ss.activeShape.target.id) return;
 	if(spaAct.limitspAoutreached(sh)) {alert("limit reached");return;} 
+	if(sh.capacitystate !== undefined || sh.type !==undefined) return; // onnly important if new source is a specialState
 	ss.activeShape.deactivate(); // back to normal colours
 	ss.activeShape.setSource(sh);
 	ss.activeShape.activate();
@@ -136,6 +149,13 @@ trAct.nameValidate = () => {
 		return false;
 	}
 	if (tr.name !== ss.nameOld) {
+		//----------------
+		let capacitytransitions = spsAct.returncapacitytransitionsbytransition(ss.activeShape);
+		for (let i = 0; i < capacitytransitions.length; i++) {
+		capacitytransitions[i].name = ss.activeShape.name;
+		capacitytransitions[i].nameArr = ss.activeShape.nameArr;
+		}
+		//----------------
 		ss.callback(shapes.shMap);
 	}
 	return true;
@@ -198,11 +218,12 @@ trAct.nameRemoveToken = () => {
 };
 
 //called by fsmCSS.init (Graph/Graph.js)
-trAct.init = (shapeMgr, systemState, instanceLimit, specialArrowActions) => {
+trAct.init = (shapeMgr, systemState, instanceLimit, specialArrowActions, specialStateActions) => {
 	shapes = shapeMgr;
 	ss = systemState;
 	instLimit = instanceLimit;
 	spaAct = specialArrowActions;
+	spsAct = specialStateActions;
 };
 
 export default trAct;

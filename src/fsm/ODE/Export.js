@@ -21,6 +21,13 @@ function buildStateMap(odeMap) {
 	return sMap;
 }
 
+function buildcapacitystateMap(capacityArr) {
+	const csMap = new Map();
+	for (let i = 0; i < capacityArr.length; i++) {
+		csMap.set(capacityArr[i].id, capacityArr[i].name);
+	}
+	return csMap;
+}
 /*
  * function buildRateMap
  * Argument odeMap: the ode data structure
@@ -77,9 +84,15 @@ function buildEquationMap(odeMap) {
 function getODEs() {
 	const res = {};
 	const odeMap = ode.getODEs();
+	const capacitystates = ode.getcapacitystates();
+	const linktocapacitystate = ode.getlinktocapacitystate();
+	const linktcstateleftstate = ode.getlinktcstateleftstate();
 	res.states = buildStateMap(odeMap);
 	res.rates = buildRateMap(odeMap);
 	res.equations = buildEquationMap(odeMap);
+	res.capacitystates = buildcapacitystateMap(capacitystates);
+	res.linktocapacitystate = linktocapacitystate;
+	res.linktcstateleftstate = linktcstateleftstate;
 	return res;
 }
 

@@ -78,6 +78,40 @@ function create(x, y, state) {
 			addListenerEnter('outenter', key);
 			sk.appendChild(key);
 			break;
+		case 'sspecial':
+			chr = String.fromCodePoint(codes.Del);
+			key = keyCreator.createKey(elSize * (colCnt - 13), 0, chr);
+			addListener('Del', key);
+			addListenerEnter('Deleteenter', key);
+			sk.appendChild(key);
+			chr = String.fromCodePoint(codes.R);
+			key = keyCreator.createKey(elSize * (colCnt - 12), 0, chr);
+			addListener('R', key);
+			addListenerEnter('Renter', key);
+			sk.appendChild(key);
+			break;
+		case 'cspecial':
+			chr = String.fromCodePoint(codes.R);
+			key = keyCreator.createKey(elSize * (colCnt - 12), 0, chr);
+			addListener('R', key);
+			addListenerEnter('Renter', key);
+			sk.appendChild(key);
+			chr = String.fromCodePoint(codes.T);
+			key = keyCreator.createKey(elSize * (colCnt - 11), 0, chr);
+			addListener('T', key);
+			addListenerEnter('Tenter', key);
+			sk.appendChild(key);
+			chr = String.fromCodePoint(codes.in);
+			key = keyCreator.createKey(elSize * (colCnt - 10), 0, chr);
+			addListener('in', key);
+			addListenerEnter('inenter', key);
+			sk.appendChild(key);
+			chr = String.fromCodePoint(codes.out);
+			key = keyCreator.createKey(elSize * (colCnt - 9), 0, chr);
+			addListener('out', key);
+			addListenerEnter('outenter', key);
+			sk.appendChild(key);
+			break;
 		case 't':
 			chr = String.fromCodePoint(codes.Del);
 			key = keyCreator.createKey(elSize * (colCnt - 13), 0, chr);
