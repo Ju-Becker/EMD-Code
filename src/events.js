@@ -39,6 +39,9 @@ function buttons() {
 		console.timeEnd('removeIntervention');
 		graph.plotCurves();
 	});
+	$('#slidersum').change(() => {
+		graph.plotCurves();
+	});
 	$('#logY').change(function () {
 		// change scale of a axis to logarithmic
 		// function requires 'this' so that check if button is checked/unchecked can happen

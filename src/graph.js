@@ -1473,7 +1473,7 @@ function initailAxes() {
 
 	// Adding Buttoms for Log and
 	$('#GraphButtons').html(
-		'<span float="right" class="slider-checkbox"><input type="checkbox" id="logY" /><label class="label" for="logY"></label><button class="button" id="button">+</button>&nbsp<button class="button" id="button2">&#8211</button>',
+		'<span float="right" class="slider-checkbox"><input type="checkbox" id="logY" /><label class="label" for="logY"></label><button class="button" id="button">+</button>&nbsp<button class="button" id="button2">&#8211</button>&nbsp<span float="right" class="slider-checkbox"><input type="checkbox" id="slidersum" /><label class="label" for="slidersum"></label>',
 	);
 }
 // ----------------------------------------------------------------------------
