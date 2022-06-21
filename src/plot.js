@@ -37,9 +37,9 @@ function plotCurves() {
 				);}
 			}
 		});
-		graph.board.update();
 		// Stop Time
 		createsumcurve();
+		graph.board.update();
 		console.timeEnd('Plot');
 	}, 20);
 }
