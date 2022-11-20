@@ -10,8 +10,10 @@ const help = {
 
 help.i =
 	'Double click an empty space in the <b>Model</b> pane to create a state.<br>' +
+	'Hold <b>SHIFt</b> and double click an empty space in the <b>Model</b> pane to create a state with capacity restriction.<br>' +
 	'Click an object to select it.<br>' +
-	'Drag a state to improve readability.<br>';
+	'Drag a state to improve readability.<br>' + 
+	'Click the tab <b>Default models</b> to get an overview of already created models. Simply build them by clicking the corresponding button.';
 help.s =
 	'Press <b>DEL</b> to delete the state.<br>' +
 	'Press <b>INS</b> to rename the state.<br>' +

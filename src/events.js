@@ -3,7 +3,7 @@
 /* eslint-disable operator-linebreak */
 import { movePointArrayY, removeIntervention } from './init';
 import { graph } from './graph';
-import { sumchange} from './sumcurves';
+import { sumchange, usersumchange} from './sumcurves';
 
 function buttons() {
 	// adding onclick events for buttons
@@ -42,6 +42,10 @@ function buttons() {
 	});
 	$('#slidersum').change(() => {
 		sumchange();
+		graph.plotCurves();
+	});
+	$('#usersum').change(() => {
+		usersumchange(true);
 		graph.plotCurves();
 	});
 	$('#logY').change(function () {

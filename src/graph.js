@@ -602,9 +602,6 @@ function graphInit() {
 					]);
 				}
 			});
-			// test for the fitting function
-			
-			// test for the fitting function
 		});
 	}
 
@@ -630,6 +627,7 @@ function graphInit() {
 				graph.selectedfunction[key]['expfct'] = true;
 				graph.selectedfunction[key]['sqrfct'] = false;
 				graph.selectedfunction[key]['arctanfct'] = false;
+				graph.selectedfunction[key]['ratfct'] = false;
 				}
 				liststring += '<option value =';
 				liststring +=	key;
@@ -655,15 +653,19 @@ function graphInit() {
     	'<label for="sqrfct" style="font-family:\'Arial\'; font-size:15px; margin-right: 6px;">Sqr</label>' +
    		'<input type="checkbox" id="arctanfct">'+
     	'<label for="arctanfct" style="font-family:\'Arial\'; font-size:15px; margin-right: 6px;">Arctan</label>' +
+			'<input type="checkbox" id="ratfct">'+
+    	'<label for="ratfct" style="font-family:\'Arial\'; font-size:15px; margin-right: 6px;">Rational</label>' +
  			'</div>'
 		);
 		document.getElementById('expfct').addEventListener('click', function () {
 			document.getElementById('expfct').checked = true;
 			document.getElementById('sqrfct').checked = false;
 			document.getElementById('arctanfct').checked = false;
+			document.getElementById('ratfct').checked = false;
 			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = true;
 			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = false;
-			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false; 
+			graph.selectedfunction[document.getElementById('cselect').value]['ratfct'] = false;
 			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (1-Math.exp(-x*x*1/population));}
 			graph.plotCurves();
 		});
@@ -671,9 +673,11 @@ function graphInit() {
 			document.getElementById('expfct').checked = false;
 			document.getElementById('sqrfct').checked = true;
 			document.getElementById('arctanfct').checked = false;
+			document.getElementById('ratfct').checked = false;
 			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = false;
 			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = true;
-			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false; 
+			graph.selectedfunction[document.getElementById('cselect').value]['ratfct'] = false;
 			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (1-1/Math.sqrt(1+x*x*1/population));}
 			graph.plotCurves();
 		});
@@ -681,10 +685,24 @@ function graphInit() {
 			document.getElementById('expfct').checked = false;
 			document.getElementById('sqrfct').checked = false;
 			document.getElementById('arctanfct').checked = true;
+			document.getElementById('ratfct').checked = false;
 			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = false;
 			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = false;
 			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = true;
+			graph.selectedfunction[document.getElementById('cselect').value]['ratfct'] = false;
 			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (1-1/(1+Math.atan(x)*Math.atan(x)));}
+			graph.plotCurves();
+		});
+		document.getElementById('ratfct').addEventListener('click', function () {
+			document.getElementById('expfct').checked = false;
+			document.getElementById('sqrfct').checked = false;
+			document.getElementById('arctanfct').checked = false;
+			document.getElementById('ratfct').checked = true;
+			graph.selectedfunction[document.getElementById('cselect').value]['expfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['sqrfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['arctanfct'] = false;
+			graph.selectedfunction[document.getElementById('cselect').value]['ratfct'] = true;
+			graph.capacityfunction[graph.linktcstateleftstate[document.getElementById('cselect').value]] = function (x,population) {return (2-(x+2)/((x+1)));}
 			graph.plotCurves();
 		});
 		document.getElementById('cselect').addEventListener('change', function () {
@@ -703,7 +721,6 @@ function graphInit() {
 			}
 		});
 	}
-	// test for the fitting function
 
 
 	};
@@ -1445,7 +1462,9 @@ function initailAxes() {
 				'To change interventions either drag them or hold <b>SHIFT</b> and click to enter coordinates directly. <br>' +
 				'Press <b>+</b> button to add an intervention and press <b>&#8211</b> button to remove last intervention.' +
 				'Switch <b>Log</b> checkbox to switch y-axis to logarithmic scale.<br>' +
-				'Press any checkbox in the <b>legend</b> to hide corresponding function graph.<br>',
+				'Press any checkbox in the <b>legend</b> to hide corresponding function graph.<br>' +
+				'Press the <b>sum</b> slider to add the values of all states with names that only differ by numbers, i.e. S<small>1</small> and S<small>2</small>.<br>' + 
+				'Press the <b>usersum</b> slider to add values of states according to your choice.',
 		);
 	});
 	$('#plotID').mouseleave(() => {
@@ -1471,9 +1490,10 @@ function initailAxes() {
 		$('#helpID').html(graph.helpID);
 	});
 
-	// Adding Buttoms for Log and
+	// Adding Buttoms for Log and the sum option and + ans - and default sum
 	$('#GraphButtons').html(
-		'<span class = "sum-checkbox"><input type="checkbox" id="slidersum" ><label class="label" for="slidersum" ></label></span><span float="right" class="slider-checkbox"><input type="checkbox" id="logY" ><label class="label" for="logY"></label><button class="button" id="button">+</button>&nbsp<button class="button" id="button2">&#8211</button>',
+		'<span class = "sum-checkbox"><input type="checkbox" id="slidersum" ><label class="label" for="slidersum" ></label></span><span class = "usersum-checkbox"><input type="checkbox" id="usersum" ><label class="label" for="usersum" ></label></span>'+
+		'<span float="right" class="slider-checkbox"><input type="checkbox" id="logY" ><label class="label" for="logY"></label><button class="button" id="button">+</button>&nbsp<button class="button" id="button2">&#8211</button>',
 	);
 }
 // ----------------------------------------------------------------------------

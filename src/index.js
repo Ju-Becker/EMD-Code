@@ -3,7 +3,7 @@ import { init as initi } from './init';
 import events from './events';
 import plotCurves from './plot';
 import fsm from './fsm/FSM'; // Entry point for everything related to the tab "The Model"
-import {inituploadmodel, downloadmodel, downloaddatacsv, fittingrequest, fittingprogram} from './modelupdownload'; 
+import {inituploadmodel, downloadmodel, downloadcsvchoice, fittingrequest, fittingprogram, initcsvBoard} from './modelupdownload'; 
 import modelsinit from './Defaultmodels';
 
 function initial() {
@@ -30,6 +30,7 @@ function initClickFunction() {
 		$('#tab3ID').hide();
 		$('#GraphButtons').hide();
 		$('#downloaduploadID').hide();
+		$('#csvdataplotID').hide();
 		$('#defaultmodelscontent').hide();
 		$('#Simulator').removeClass('active');
 		$('#Designer').addClass('active');
@@ -45,6 +46,7 @@ function initClickFunction() {
 		$('#tab2ID').show();
 		$('#GraphButtons').show();
 		$('#downloaduploadID').hide();
+		$('#csvdataplotID').hide();
 		$('#defaultmodelscontent').hide();
 		$('#Simulator').addClass('active');
 		$('#Designer').removeClass('active');
@@ -68,6 +70,7 @@ function initClickFunction() {
 		$('#tab3ID').hide();
 		$('#GraphButtons').hide();
 		$('#downloaduploadID').hide();
+		$('#csvdataplotID').hide();
 		$('#defaultmodelscontent').show();
 		$('#Simulator').removeClass('active');
 		$('#Designer').removeClass('active');
@@ -86,6 +89,7 @@ function initClickFunction() {
 		$('#tab3ID').hide();
 		$('#GraphButtons').hide();
 		$('#downloaduploadID').show();
+		$('#csvdataplotID').hide();
 		$('#defaultmodelscontent').hide();
 		$('#helpID').hide();
 		$('#Simulator').removeClass('active');
@@ -95,22 +99,27 @@ function initClickFunction() {
 	});
 	//user upload
 	$('#uploadmodel').change(() => {
+		$('#csvdataplotID').hide();
 		inituploadmodel();
 	});
 	//user download
 	$('#downloadmodel').click(() => {
+		$('#csvdataplotID').hide();
 		downloadmodel();
 	});
 	//user download data as csv
 	$('#downloaddatacsv').click(() => {
-		downloaddatacsv();
+		$('#csvdataplotID').hide();
+		downloadcsvchoice();
 	});
 	//user download model structur as json
 	$('#downloadmodeljson').click(() => {
+		$('#csvdataplotID').hide();
 		fittingrequest();
 	});
 	//user fittingprogram download
 	$('#downloadfittingprogram').click(() => {
+		$('#csvdataplotID').hide();
 		fittingprogram();
 	});
 	$('#Rates').click(() => {
@@ -158,6 +167,9 @@ function init() {
 		document.getElementById('Rates').click();
 	});
 	initial();
+	document.getElementById('UploadDownload').click();
+	$('#csvdataplotID').show();
+	initcsvBoard();
 	document.getElementById('Designer').click();
 }
 // Script Execution: Wait for the page (precisely: DOM structure) to be loaded

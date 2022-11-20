@@ -2,7 +2,7 @@
 /* eslint-disable operator-linebreak */
 import ode from './ode';
 import { graph } from './graph';
-import { createsumcurve } from './sumcurves';
+import { createsumcurve, usersumchange } from './sumcurves';
 
 function plotCurves() {
 	function debounce(func, interval) {
@@ -39,6 +39,7 @@ function plotCurves() {
 		});
 		// Stop Time
 		createsumcurve();
+		usersumchange(false);
 		graph.board.update();
 		console.timeEnd('Plot');
 	}, 20);

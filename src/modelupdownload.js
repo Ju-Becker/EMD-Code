@@ -49,6 +49,38 @@ s0(40,40),1000,119878;s1(140,40),0,119868;s2(240,40),0,119877:
 t0-0:
 120573,t0,0.3;120574,t0,0.2:
 */
+const modelupdownload = {};
+modelupdownload.capacitystatefunctions = [];
+modelupdownload.capacitystatefunctions['expfct'] = function(string, populationinzero){
+	return "(1-exp(-(" + string + ")*(" + string + ")*1/" +populationinzero+"))";
+}
+modelupdownload.capacitystatefunctions['sqrfct'] = function(string, populationinzero){
+	return "(1-1/sqrt(1+(" + string + ")*(" + string + ")*1/" +populationinzero+"))";
+}
+modelupdownload.capacitystatefunctions['arctanfct'] = function(string, populationinzero){
+	return "(1-1/(1+atan(" + string + ")*atan(" + string +")))";
+}
+modelupdownload.capacitystatefunctions['ratfct'] = function(string, populationinzero){
+	return "(2-(" + string + "+2)/(" + string + "+1))";
+}
+
+function initcsvBoard(){
+	modelupdownload.board = JXG.JSXGraph.initBoard('csvdataplotID', {
+		boundingbox: [-20, 1.2, 220, -0.1],  
+		axis: true,
+		keepaspectratio: false,
+		showCopyright: false,
+		showNavigation: false,
+		zoom: {
+			factorX: 1.25,
+			factorY: 1.25,
+			wheel: true,
+			needshift: false,
+			eps: 0.1,
+		},
+	});
+}
+modelupdownload.objectsonboard = {};
 
 
 // called by index.js 
@@ -169,7 +201,7 @@ function generate(input){
 			graph.data.interventions.t0 = 0;
 			graph.data.rates = {};
 			// init the capacity states value
-			graph.data.capacitystates = {}
+			graph.data.capacitystates = {};
 		}else{
 		while(id!==testid){
 			testid = shapes.generateFreeID('s');
@@ -199,14 +231,15 @@ function generate(input){
 		}
 		shapes.draw();
 		fsmCSS.callback(shapes.shMap);
-		// state value
-		graph.data.states[id] = {};
-		graph.data.states[id].name = st.name;
-		graph.data.states[id].value = value;
+		// state value	
 		if(cstate === 'm'){//adding max capacity to the main state
 			graph.data.capacitystates[id] = {};
 			graph.data.capacitystates[id].name = st.name;
 			graph.data.capacitystates[id].value = value;
+		}else{ // otherwise normally setting the states data
+			graph.data.states[id] = {};
+			graph.data.states[id].name = st.name;
+			graph.data.states[id].value = value;
 		}
 		}
 		if(input[i] !== ':'){
@@ -777,7 +810,15 @@ function downloadmodel() {
 }
 
 // download data as csv
-function downloaddatacsv(){
+function downloaddatacsv(show,randomtype,param1,param2){ // if show is true, then the plot is shown
+	if(show){
+		$('#csvdataplotID').show();
+		modelupdownload.board.suspendUpdate();
+		Object.values(modelupdownload.objectsonboard).forEach((value) =>{
+			modelupdownload.board.removeObject(value);
+		})
+		modelupdownload.board.unsuspendUpdate();
+	}
  const data = ode();
  var text = 'population,';
  var filename = 'EMD-data.csv';
@@ -785,16 +826,17 @@ function downloaddatacsv(){
  var time;
  var shID;
  var sh;
+ var colorArr = [];
  for([shID, sh] of shapes.shMap){
 		const shType = shID.substring(0,1);
-		if(shType === 's'){
+		if(shType === 's' && sh.max === undefined){
+			colorArr.push(graph.colors[graph.statesMap[shID]]); // get the color of the curve, only for csvplot relevant
 			for (let i = 0; i < sh.name.length; i++) {
 				let namepoint = sh.name.codePointAt(i)
 				Object.keys(symbols.L.C).forEach((key) => {
 					if(symbols.L.C[key] === namepoint){
 						text += key;
-					}
-					if(symbols.L.S[key] === namepoint){
+					}else if(symbols.L.S[key] === namepoint){
 						text += key.toLowerCase();
 					}
 				})
@@ -803,16 +845,209 @@ function downloaddatacsv(){
 		}
 	}
 	text += '\n';
- for (let i = 0; i < data.length; i++) {
+
+	if(randomtype === "uniform"){
+		for (let i = 0; i < data.length; i++) {
+			var time = data[i].pop();
+			let valuearray = [];
+			let population = 0;
+			if(Number.isInteger(time)){
+				for (let j = 1; j < data[i].length; j++) { // need to calculate the population size additionale since it changes wrt the random change
+					let randomnumber = Math.random() * (param2 - param1) + param1*1.0;
+					if(parseFloat(data[i][j])+randomnumber <0){
+						modelupdownload.objectsonboard[time + 'id'+j] = modelupdownload.board.create('point',[time,0], {size :1, name:'', fixed:true, color : colorArr[j-1]});
+						valuearray.push(0);
+					}else{
+						modelupdownload.objectsonboard[time + 'id'+j] = modelupdownload.board.create('point',[time,parseFloat(data[i][j])+randomnumber], {size :1, name:'', fixed:true, color : colorArr[j-1]});
+						valuearray.push(parseFloat(data[i][j])+randomnumber);
+						population += parseFloat(data[i][j])+randomnumber;
+					}
+				}
+				text += population;
+				text += ',';
+				text += valuearray;
+				text += '\n';
+			}
+		}
+		//population
+	} else if(randomtype === "gaussian"){
+		// returns a gaussian random function with the given mean and stdev.
+		function gaussian(mean, stdev) {
+		  var y2;
+		  var use_last = false;
+		  return function() {
+		    var y1;
+		    if (use_last) {
+		      y1 = y2;
+		      use_last = false;
+		    } else {
+		      var x1, x2, w;
+		      do {
+		        x1 = 2.0 * Math.random() - 1.0;
+		        x2 = 2.0 * Math.random() - 1.0;
+		        w = x1 * x1 + x2 * x2;
+		      } while (w >= 1.0);
+		      w = Math.sqrt((-2.0 * Math.log(w)) / w);
+		      y1 = x1 * w;
+		      y2 = x2 * w;
+		      use_last = true;
+		    }
+			
+		    var retval = mean + stdev * y1;
+		    return retval;
+		  }
+		}
+		var randomvaraible = gaussian(parseFloat(param1), parseFloat(param2)); // create the random variable with the mean and the stdev from the user input
+		// now the same process as in the uniform case but we add the randomvaraible
+		for (let i = 0; i < data.length; i++) {
+			var time = data[i].pop();
+			let valuearray = [];
+			let population = 0;
+			if(Number.isInteger(time)){
+				for (let j = 1; j < data[i].length; j++) { // need to calculate the population size additionale since it changes wrt the random change
+					let randomnumber = randomvaraible();
+					if(parseFloat(data[i][j])+randomnumber <0){
+						modelupdownload.objectsonboard[time + 'id'+j] = modelupdownload.board.create('point',[time,0], {size :1, name:'', fixed:true, color : colorArr[j-1]});
+						valuearray.push(0);
+					}else{
+						modelupdownload.objectsonboard[time + 'id'+j] = modelupdownload.board.create('point',[time,parseFloat(data[i][j])+randomnumber], {size :1, name:'', fixed:true, color : colorArr[j-1]});
+						valuearray.push(parseFloat(data[i][j])+randomnumber);
+						population += parseFloat(data[i][j])+randomnumber;
+					}
+				}
+				text += population;
+				text += ',';
+				text += valuearray;
+				text += '\n';
+			}
+		}
+
+	}else{
+		for (let i = 0; i < data.length; i++) {
+			var time = data[i].pop();
+	 		if(Number.isInteger(time)){
+				if(show){
+					for (let j = 1; j < data[i].length; j++) {
+						modelupdownload.objectsonboard[time + 'id'+j] = modelupdownload.board.create('point',[time,data[i][j]], {size :1, name:'', fixed:true, color : colorArr[j-1]});
+					}
+				}
+				text+= data[i];
+				text += ',';
+				text += '\n';
+			}
+		}
+		//let graph = board.create('curve',[timeline,datapoints],{curvetype : 'none'})
+	}
+	//// deprecated
+ /*for (let i = 0; i < data.length; i++) {
 	 	var time = data[i].pop();
 	 	if(Number.isInteger(time)){
-			text += data[i];
-			text += ',';
+			for (let j = 0; j < data[i].length; j++) {
+				if(randomtype === "uniform" && false){
+					let randomnumber = Math.random() * (param2 - param1) + param1*1.0;
+					if(parseFloat(data[i][j])+randomnumber <0){
+						text +=0;
+					}else{
+						text += parseFloat(data[i][j])+randomnumber;
+					}
+					text += ',';
+					//population
+				} else if(randomtype === "gaussian"){
+
+				}else{
+					text+= data[i][j];
+					text += ',';
+				}
+			}
 			text += '\n';
 	 	}
- }
- downloaddata(text,filename,type);
+ }*/
+ if(!show){downloaddata(text,filename,type);}
 }
+
+// user wants to download the data as csv
+// user can choose which noise should be on the data
+function downloadcsvchoice(){
+	let labels = '<div>Choose your specification:</div>';
+	labels += '<div><button id="uniform" class="downloadupload" style="margin-right: 4px; width: 64px">Uniform</button>';
+	labels += '<button id="gaussian" class="downloadupload" style="margin-right: 4px; width: 64px; padding-left:2px">Gaussian</button>';
+	labels += '<button id="without" class="downloadupload" style="width: 64px">None</button></div>';
+	labels += '<button id="cancelcsvchoice" class="downloadupload" style="margin-bottom: 10px">Cancel</button>';
+	$('#downloadcsvchoice').html(labels);
+
+	//Adding Eventlisteners
+	document.getElementById("cancelcsvchoice").addEventListener("click", function(){
+		$('#downloadcsvchoice').html('');
+	})
+	document.getElementById("without").addEventListener("click", function(){
+		let withoutlabel = '<button id="withoutaccept" class="downloadupload" style="margin-right: 4px; width: 64px">Accept</button>';
+		withoutlabel += '<button id="withoutcancel" class="downloadupload" style="margin-right: 4px; width: 64px">Cancel</button>';
+		withoutlabel += '<button id="withoutshow" class="downloadupload" style="width: 64px">Show</button>';
+		$('#downloadcsvchoice').html(withoutlabel);
+		document.getElementById("withoutcancel").addEventListener("click", function(){
+			$('#downloadcsvchoice').html('');
+		})
+		document.getElementById("withoutaccept").addEventListener("click", function(){
+			downloaddatacsv(false);
+			$('#downloadcsvchoice').html('');
+		})
+		document.getElementById("withoutshow").addEventListener("click", function(){
+			downloaddatacsv(true);
+			$('#downloadcsvchoice').html('');
+		})
+	})
+	document.getElementById("uniform").addEventListener("click", function(){
+		let uniformlabel = '<div>Intervall:</div>';
+		uniformlabel += '<div>';
+		uniformlabel += '<input type=number step=any id="loweruniform" value=-0.01 style="background-color: #d1d1d1; width:90px; margin-right:20px">';
+		uniformlabel += '<input type=number step=any id="upperuniform" value=0.01 style="background-color: #d1d1d1; width:90px;">';
+		uniformlabel += '</div>';
+		uniformlabel += '<button id="uniformaccept" class="downloadupload" style="margin-right: 4px; width: 64px">Accept</button>';
+		uniformlabel += '<button id="uniformcancel" class="downloadupload" style="margin-right: 4px; width: 64px">Cancel</button>';
+		uniformlabel += '<button id="uniformshow" class="downloadupload" style="width: 64px">Show</button>';
+		$('#downloadcsvchoice').html(uniformlabel);
+		document.getElementById("uniformcancel").addEventListener("click", function(){
+			$('#downloadcsvchoice').html('');
+		})
+		document.getElementById("uniformaccept").addEventListener("click", function(){
+			let lowerbound = document.getElementById("loweruniform").value;
+			let upperbound = document.getElementById("upperuniform").value;
+			downloaddatacsv(false,"uniform",lowerbound,upperbound);
+			$('#downloadcsvchoice').html('');
+		})
+		document.getElementById("uniformshow").addEventListener("click", function(){
+			let lowerbound = document.getElementById("loweruniform").value;
+			let upperbound = document.getElementById("upperuniform").value;
+			downloaddatacsv(true,"uniform",lowerbound,upperbound);
+		})
+	})
+	document.getElementById("gaussian").addEventListener("click", function(){
+		let gaussianlabel = '<div>Mean:';
+		gaussianlabel += '<input type=number step=any id="meangaussian" value=0 style="background-color: #d1d1d1; margin-left:45px; width:97px"></div>';
+		gaussianlabel += '<div>Variance:';
+		gaussianlabel += '<input type=number step=any id="variancegaussian" value=0.01 min=0 style="background-color: #d1d1d1; margin-left:15px; width:97px"></div>';
+		gaussianlabel += '<button id="gaussianaccept" class="downloadupload" style="margin-right: 4px; width: 64px">Accept</button>';
+		gaussianlabel += '<button id="gaussiancancel" class="downloadupload" style="margin-right: 4px; width: 64px">Cancel</button>';
+		gaussianlabel += '<button id="gaussianshow" class="downloadupload" style="width: 64px">Show</button>';
+		$('#downloadcsvchoice').html(gaussianlabel);
+		document.getElementById("gaussiancancel").addEventListener("click", function(){
+			$('#downloadcsvchoice').html('');
+		})
+		document.getElementById("gaussianaccept").addEventListener("click", function(){
+			let meangaussian = document.getElementById("meangaussian").value;
+			let variancegaussian = document.getElementById("variancegaussian").value;
+			downloaddatacsv(false,"gaussian",meangaussian,variancegaussian);
+			$('#downloadcsvchoice').html('');
+		})
+		document.getElementById("gaussianshow").addEventListener("click", function(){
+			let meangaussian = document.getElementById("meangaussian").value;
+			let variancegaussian = document.getElementById("variancegaussian").value;
+			downloaddatacsv(true,"gaussian",meangaussian,variancegaussian);
+			$('#downloadcsvchoice').html('');
+		})
+	})
+}
+
 //called by fitting request, when user has selected compartment to fit
 function downloadmodeljson(fittingcompartment, scompartment){
 	const data = ode();
@@ -832,7 +1067,7 @@ function downloadmodeljson(fittingcompartment, scompartment){
 	var statescount;
 	for([shIDstate, shstate] of shapes.shMap){
 		shType = shIDstate.substring(0,1);
-		if(shType === 's'){
+		if(shType === 's' && shstate.max === undefined){
 			text += '"';
 			text += shIDstate;
 			text += '": "';
@@ -877,10 +1112,82 @@ function downloadmodeljson(fittingcompartment, scompartment){
 				}
 			}
 			if(shType === 't' && sh.target.id === shIDstate && sh.type === undefined){ // arrows with target this state
-				statescount =0;
-				text += '+';
-				text += sh.source.id;
-				text += '*';
+				if(sh.source.max !== undefined && sh.capacitystate === 'left'){ // source of the transition is a specialstate and the target is on the left hand side
+					let shIDsource;
+					let shsource;
+					let string = "";
+					let populationinzero = 0; //need to calculate the populatin in t=0 for the specialstates to get the norm out of the specialstate function
+					// because in the plot, we norm after the computation, so if we download the data, we get normed values but to compute the right values,
+					// we need to "endnorm" the data in the specialfunction
+					Object.keys(graph.states).forEach((key) => {
+						populationinzero += graph.states[key].getValue();
+					});
+					statescount =0;
+					text += '+';
+					for([shIDsource, shsource] of shapes.shMap){  //search the source of the specialstate
+						if(shIDsource.substring(0,1) === 't' && shsource.target === sh.source){
+							text += shsource.source.id;
+							text += '*';
+						}
+					}
+					string += graph.capacitystates[graph.linktocapacitystate[shIDstate]].getValue();
+					string += "-";
+					string += shIDstate;
+					string += '*';
+					string += populationinzero;
+					console.log(graph.data.states['s0'].value)
+					if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['expfct']){
+						text += modelupdownload.capacitystatefunctions['expfct'](string, populationinzero);
+					} else if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['sqrfct']){
+						text += modelupdownload.capacitystatefunctions['sqrfct'](string, populationinzero);
+					} else if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['arctanfct']){
+						text += modelupdownload.capacitystatefunctions['arctanfct'](string, populationinzero);
+					} else if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['ratfct']){
+						text += modelupdownload.capacitystatefunctions['ratfct'](string, populationinzero);
+					}
+					text += '*';
+
+				}else if(sh.source.max !== undefined && sh.capacitystate === 'right'){ // source of the transition is a specialstate and the target is on the right hand side
+					let shIDsource;
+					let shsource;
+					let string = "";
+					let populationinzero = 0; //need to calculate the populatin in t=0 for the specialstates to get the norm out of the specialstate function
+					// because in the plot, we norm after the computation, so if we download the data, we get normed values but to compute the right values,
+					// we need to "endnorm" the data in the specialfunction
+					Object.keys(graph.states).forEach((key) => {
+						populationinzero += graph.states[key].getValue();
+					});
+					statescount =0;
+					text += '+';
+					for([shIDsource, shsource] of shapes.shMap){  //search the source of the specialstate
+						if(shIDsource.substring(0,1) === 't' && shsource.target === sh.source){
+							text += shsource.source.id;
+							text += '*';
+						}
+					}
+					string += graph.capacitystates[graph.linktocapacitystate[shIDstate]].getValue();
+					string += "-";
+					string += graph.linktcstateleftstate[graph.linktocapacitystate[shIDstate]];
+					string += '*';
+					string += populationinzero;
+					text += "(1-";
+					if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['expfct']){
+						text += modelupdownload.capacitystatefunctions['expfct'](string, populationinzero);
+					} else if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['sqrfct']){
+						text += modelupdownload.capacitystatefunctions['sqrfct'](string, populationinzero);
+					} else if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['arctanfct']){
+						text += modelupdownload.capacitystatefunctions['arctanfct'](string, populationinzero);
+					} else if(graph.selectedfunction[graph.linktocapacitystate[shIDstate]]['ratfct']){
+						text += modelupdownload.capacitystatefunctions['ratfct'](string, populationinzero);
+					}
+					text += ')*';
+				}else{
+					statescount =0;
+					text += '+';
+					text += sh.source.id;
+					text += '*';
+				}
+
 				for(let m = 0; m < sh.nameArr.length; m++){
 					switch (sh.nameArr[m][0]) {
 						case 'r':
@@ -1023,8 +1330,7 @@ function downloadmodeljson(fittingcompartment, scompartment){
 			Object.keys(symbols.L.C).forEach((key) => {
 				if(symbols.L.C[key] === namepoint){
 					text += key;
-				}
-				if(symbols.L.S[key] === namepoint){
+				}else if(symbols.L.S[key] === namepoint){
 					text += key.toLowerCase();
 				}
 			})
@@ -1196,8 +1502,7 @@ function fittingrequest(){
 
 //---------------------------------------
 function fittingprogram(){
-	window.open('https://github.com/Kilian672/EMD-Code/blob/main/App.exe', '_blank').focus();
-	//download("https://raw2.github.com/Kilian672/EMD-Code/main/package.json","package.json");
+	window.open('https://github.com/Kilian672/Fitting-Tool/blob/main/fitting_tool_new.exe', '_blank').focus();
 }
 function download(url, filename) {
   fetch(url)
@@ -1211,4 +1516,4 @@ function download(url, filename) {
   .catch(console.error);
 }
 
-export {inituploadmodel, downloadmodel, downloaddatacsv, fittingrequest, fittingprogram, generate};
+export {inituploadmodel, downloadmodel, downloadcsvchoice, fittingrequest, fittingprogram, generate, initcsvBoard};

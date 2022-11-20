@@ -33,10 +33,13 @@ function ode() {
 					// sign of the contribution
 					let tempProd = contribution.sign > 0 ? 1 : -1;
 					//--------------------
-					if(contribution.sign !== 1 && contribution.sign !== -1 && contribution.sign !== 3){
-						tempProd = (1-specialstatefunction[contribution.sign](graph.capacitystates[graph.linktocapacitystate[stID]].getValue()-I[graph.statesMap[contribution.sign]],population));
-					}else if(contribution.sign === 3){
-						tempProd = specialstatefunction[stID](graph.capacitystates[graph.linktocapacitystate[stID]].getValue()-I[graph.statesMap[stID]],population);
+					if(Object.keys(specialstatefunction)[0] != "undefined" || Object.keys(specialstatefunction)[1] != undefined){ // there is a problem without this exception
+						//because otherwise there is an error in modelupdownload, ongoing research for a better solution
+						if(contribution.sign !== 1 && contribution.sign !== -1 && contribution.sign !== 3){
+							tempProd = (1-specialstatefunction[contribution.sign](graph.capacitystates[graph.linktocapacitystate[stID]].getValue()-I[graph.statesMap[contribution.sign]],population));
+						}else if(contribution.sign === 3){
+							tempProd = specialstatefunction[stID](graph.capacitystates[graph.linktocapacitystate[stID]].getValue()-I[graph.statesMap[stID]],population);
+						}
 					}
 					//-------------------------
 					// The array contribution.prod containing the factors
